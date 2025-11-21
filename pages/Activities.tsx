@@ -20,8 +20,11 @@ export const Activities: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-        setActivities(StorageService.getActivities(user.id));
-        setOpportunities(StorageService.getOpportunities(user.id));
+        const loadData = async () => {
+            setActivities(await StorageService.getActivities(user.id));
+            setOpportunities(await StorageService.getOpportunities(user.id));
+        };
+        loadData();
     }
   }, [user, isModalOpen]);
 
@@ -46,7 +49,7 @@ export const Activities: React.FC = () => {
       window.open(url, '_blank');
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const newActivity: Activity = {
         id: crypto.randomUUID(),
@@ -57,7 +60,7 @@ export const Activities: React.FC = () => {
         opportunityId: formData.opportunityId || undefined,
         completed: false
     };
-    StorageService.saveActivity(newActivity);
+    await StorageService.saveActivity(newActivity);
 
     if (addToCalendar) {
         addToGoogleCalendar(newActivity);
@@ -68,16 +71,16 @@ export const Activities: React.FC = () => {
     setAddToCalendar(false);
   };
 
-  const toggleComplete = (activity: Activity) => {
+  const toggleComplete = async (activity: Activity) => {
       const updated = { ...activity, completed: !activity.completed };
-      StorageService.saveActivity(updated);
-      setActivities(StorageService.getActivities(user.id));
+      await StorageService.saveActivity(updated);
+      setActivities(await StorageService.getActivities(user.id));
   };
 
-  const deleteActivity = (id: string) => {
+  const deleteActivity = async (id: string) => {
       if(confirm('Tem certeza que deseja excluir esta atividade?')) {
-        StorageService.deleteActivity(id);
-        setActivities(StorageService.getActivities(user.id));
+        await StorageService.deleteActivity(id);
+        setActivities(await StorageService.getActivities(user.id));
       }
   };
 

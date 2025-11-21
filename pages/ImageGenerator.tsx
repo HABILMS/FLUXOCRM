@@ -19,6 +19,7 @@ export const ImageGenerator: React.FC = () => {
   const [hasKey, setHasKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [usedFallback, setUsedFallback] = useState(false);
+  const [customKey, setCustomKey] = useState('');
   
   // Settings
   const [aspectRatio, setAspectRatio] = useState('1:1');
@@ -32,15 +33,13 @@ export const ImageGenerator: React.FC = () => {
     return (window as any).aistudio;
   }
 
-  const getCustomKey = () => {
-      if (!user) return '';
-      return StorageService.getUserSettings(user.id).googleApiKey || '';
-  }
-
   const checkKey = async () => {
-      // Check if custom key exists or AI Studio key is selected
-      const custom = getCustomKey();
-      if (custom) {
+      if (!user) return;
+      const settings = await StorageService.getUserSettings(user.id);
+      const key = settings.googleApiKey || '';
+      setCustomKey(key);
+
+      if (key) {
           setHasKey(true);
           return;
       }
@@ -67,7 +66,7 @@ export const ImageGenerator: React.FC = () => {
     setError(null);
     setUsedFallback(false);
 
-    const apiKey = getCustomKey() || process.env.API_KEY;
+    const apiKey = customKey || process.env.API_KEY;
 
     try {
       // Create instance right before call to ensure key is fresh

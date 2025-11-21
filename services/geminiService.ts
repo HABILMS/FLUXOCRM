@@ -2,28 +2,29 @@
 import { GoogleGenAI, Type, FunctionDeclaration, FunctionCall } from "@google/genai";
 import { OpportunityStatus } from "../types";
 import { StorageService } from "./storage";
+import { supabase } from "./supabase";
 
 export class GeminiService {
   private modelId = 'gemini-2.5-flash';
 
   constructor() {}
 
-  private getApiKey(): string {
-      const user = StorageService.getCurrentUser();
-      if (user) {
-          const settings = StorageService.getUserSettings(user.id);
+  private async getApiKey(): Promise<string> {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+          const settings = await StorageService.getUserSettings(data.session.user.id);
           if (settings.googleApiKey) return settings.googleApiKey;
       }
       return process.env.API_KEY || '';
   }
 
-  private getAi(): GoogleGenAI | null {
-      const key = this.getApiKey();
+  private async getAi(): Promise<GoogleGenAI | null> {
+      const key = await this.getApiKey();
       return key ? new GoogleGenAI({ apiKey: key }) : null;
   }
 
-  isAvailable() {
-    return !!this.getApiKey();
+  async isAvailable() {
+    return !!(await this.getApiKey());
   }
 
   // Tools Definition
@@ -80,7 +81,7 @@ export class GeminiService {
     systemInstruction: string,
     onToolCall?: (call: FunctionCall) => Promise<any>
   ): Promise<string> {
-    const ai = this.getAi();
+    const ai = await this.getAi();
     if (!ai) return "Erro: Chave de API não configurada. Adicione sua chave nas configurações.";
 
     try {

@@ -35,7 +35,6 @@ export const AIAssistant: React.FC = () => {
     }
   }, [messages]);
 
-  // Initial greeting
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setMessages([{
@@ -60,7 +59,7 @@ export const AIAssistant: React.FC = () => {
       if (call.name === 'create_expense') {
           const { description, amount, category } = call.args;
           if (user) {
-              StorageService.saveExpense({
+              await StorageService.saveExpense({
                   id: crypto.randomUUID(),
                   userId: user.id,
                   description,
@@ -76,7 +75,7 @@ export const AIAssistant: React.FC = () => {
       if (call.name === 'create_income') {
           const { description, amount, category } = call.args;
           if (user) {
-              StorageService.saveExpense({
+              await StorageService.saveExpense({
                   id: crypto.randomUUID(),
                   userId: user.id,
                   description,
@@ -106,10 +105,8 @@ export const AIAssistant: React.FC = () => {
     setInputValue('');
     setIsProcessing(true);
 
-    // Build history context excluding current message
     const history = messages.map(m => ({ role: m.role, text: m.text }));
 
-    // System instruction
     const systemInstruction = `
       Você é um assistente de CRM útil e eficiente. O usuário é um consultor ou vendedor.
       Responda de forma concisa em Português.
@@ -129,7 +126,6 @@ export const AIAssistant: React.FC = () => {
     setMessages(prev => [...prev, modelMsg]);
     setIsProcessing(false);
 
-    // Text to Speech if enabled/available
     if (planConfig?.features.voiceCommands) {
         speak(responseText);
     }
@@ -153,13 +149,21 @@ export const AIAssistant: React.FC = () => {
       }
   };
 
-  const startListening = () => {
+  const startListening = async () => {
     const w = window as unknown as IWindow;
     const SpeechRecognition = w.SpeechRecognition || w.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       alert("Seu navegador não suporta reconhecimento de voz.");
       return;
+    }
+
+    try {
+        // Explicitly request permission when button is clicked
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+        alert("É necessário permitir o acesso ao microfone para usar os comandos de voz.");
+        return;
     }
 
     const recognition = new SpeechRecognition();
@@ -186,7 +190,6 @@ export const AIAssistant: React.FC = () => {
 
   return (
     <>
-      {/* Floating Button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -196,10 +199,8 @@ export const AIAssistant: React.FC = () => {
         </button>
       )}
 
-      {/* Chat Window */}
       {isOpen && (
         <div className="fixed bottom-6 right-6 w-80 md:w-96 h-[500px] bg-white rounded-xl shadow-2xl flex flex-col border border-slate-200 z-50 overflow-hidden">
-          {/* Header */}
           <div className="bg-indigo-600 text-white p-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="font-semibold">Fluxo AI Assistant</span>
@@ -210,7 +211,6 @@ export const AIAssistant: React.FC = () => {
             </button>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-4">
             {messages.map((msg) => (
               <div
@@ -238,7 +238,6 @@ export const AIAssistant: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area */}
           <div className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
              {planConfig.features.voiceCommands && (
                 <button

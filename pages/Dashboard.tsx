@@ -1,53 +1,57 @@
-import React, { useMemo } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { StorageService } from '../services/storage';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Users, DollarSign, AlertCircle } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, AlertCircle, Loader2 } from 'lucide-react';
 import { OpportunityStatus } from '../types';
 
 export const Dashboard: React.FC = () => {
   const { user, plans } = useApp();
+  const [data, setData] = useState<any>(null);
   
-  const data = useMemo(() => {
-      if (!user) return null;
-      const opps = StorageService.getOpportunities(user.id);
-      const contacts = StorageService.getContacts(user.id);
-      const expenses = StorageService.getExpenses(user.id);
+  useEffect(() => {
+      if (user) {
+          Promise.all([
+              StorageService.getOpportunities(user.id),
+              StorageService.getContacts(user.id),
+              StorageService.getExpenses(user.id)
+          ]).then(([opps, contacts, expenses]) => {
+              const totalWon = opps.filter(o => o.status === OpportunityStatus.WON).reduce((acc, curr) => acc + curr.value, 0);
+              const totalPipeline = opps.filter(o => o.status !== OpportunityStatus.WON && o.status !== OpportunityStatus.LOST).reduce((acc, curr) => acc + curr.value, 0);
+              
+              const expenseTotal = expenses.filter(e => e.type === 'EXPENSE').reduce((acc, curr) => acc + curr.amount, 0);
+              const incomeTotal = expenses.filter(e => e.type === 'INCOME').reduce((acc, curr) => acc + curr.amount, 0);
 
-      const totalWon = opps.filter(o => o.status === OpportunityStatus.WON).reduce((acc, curr) => acc + curr.value, 0);
-      const totalPipeline = opps.filter(o => o.status !== OpportunityStatus.WON && o.status !== OpportunityStatus.LOST).reduce((acc, curr) => acc + curr.value, 0);
-      
-      const expenseTotal = expenses.filter(e => e.type === 'EXPENSE').reduce((acc, curr) => acc + curr.amount, 0);
-      const incomeTotal = expenses.filter(e => e.type === 'INCOME').reduce((acc, curr) => acc + curr.amount, 0); // Usually matches won, but tracking separately in expenses ledger
+              const statusData = [
+                  { name: 'Abertas', value: opps.filter(o => o.status === OpportunityStatus.OPEN).length },
+                  { name: 'Negociação', value: opps.filter(o => o.status === OpportunityStatus.NEGOTIATION).length },
+                  { name: 'Ganhas', value: opps.filter(o => o.status === OpportunityStatus.WON).length },
+                  { name: 'Perdidas', value: opps.filter(o => o.status === OpportunityStatus.LOST).length },
+              ].filter(d => d.value > 0);
 
-      // Chart Data: Opportunities by Status
-      const statusData = [
-          { name: 'Abertas', value: opps.filter(o => o.status === OpportunityStatus.OPEN).length },
-          { name: 'Negociação', value: opps.filter(o => o.status === OpportunityStatus.NEGOTIATION).length },
-          { name: 'Ganhas', value: opps.filter(o => o.status === OpportunityStatus.WON).length },
-          { name: 'Perdidas', value: opps.filter(o => o.status === OpportunityStatus.LOST).length },
-      ].filter(d => d.value > 0);
+              const productDataMap = opps.reduce((acc, curr) => {
+                  acc[curr.product] = (acc[curr.product] || 0) + curr.value;
+                  return acc;
+              }, {} as Record<string, number>);
+              
+              const productData = Object.keys(productDataMap).map(key => ({ name: key, value: productDataMap[key] }));
 
-      // Chart Data: Pipeline Value by Product
-      const productDataMap = opps.reduce((acc, curr) => {
-          acc[curr.product] = (acc[curr.product] || 0) + curr.value;
-          return acc;
-      }, {} as Record<string, number>);
-      
-      const productData = Object.keys(productDataMap).map(key => ({ name: key, value: productDataMap[key] }));
-
-      return {
-          contactCount: contacts.length,
-          oppCount: opps.length,
-          totalWon,
-          totalPipeline,
-          netBalance: incomeTotal - expenseTotal,
-          statusData,
-          productData
-      };
+              setData({
+                  contactCount: contacts.length,
+                  oppCount: opps.length,
+                  totalWon,
+                  totalPipeline,
+                  netBalance: incomeTotal - expenseTotal,
+                  statusData,
+                  productData
+              });
+          });
+      }
   }, [user]);
 
-  if (!user || !data) return <div>Loading...</div>;
+  if (!user) return null;
+  if (!data) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-indigo-600"/></div>;
   const plan = plans[user.plan];
 
   const COLORS = ['#6366f1', '#8b5cf6', '#10b981', '#ef4444'];
@@ -130,7 +134,7 @@ export const Dashboard: React.FC = () => {
                         paddingAngle={5}
                         dataKey="value"
                     >
-                        {data.statusData.map((entry, index) => (
+                        {data.statusData.map((entry: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                     </Pie>

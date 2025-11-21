@@ -1,8 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, PlanConfig, PlanType, UserRole, AppNotification } from '../types';
+import { User, PlanConfig, PlanType, AppNotification } from '../types';
 import { StorageService } from '../services/storage';
 import { notificationService } from '../services/notificationService';
+import { supabase } from '../services/supabase';
 
 interface AppContextProps {
   user: User | null;
@@ -25,54 +26,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    StorageService.init();
     setPlans(StorageService.getPlanConfigs());
-    const currentUser = StorageService.getCurrentUser();
-    setUser(currentUser);
-    if (currentUser) {
-        setNotifications(StorageService.getNotifications(currentUser.id));
-        notificationService.requestPermission();
-        notificationService.startService(currentUser);
-    }
-    setIsLoading(false);
+    
+    // Check Supabase Session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (session?.user) {
+            const profile = await StorageService.getCurrentUser(session.user.id);
+            setUser(profile);
+            if (profile) {
+                setNotifications(StorageService.getNotifications(profile.id));
+                notificationService.requestPermission();
+                notificationService.startService(profile);
+            }
+        }
+        setIsLoading(false);
+    });
 
-    return () => {
-        notificationService.stopService();
-    }
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (session?.user) {
+            const profile = await StorageService.getCurrentUser(session.user.id);
+            setUser(profile);
+        } else {
+            setUser(null);
+            notificationService.stopService();
+        }
+        setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Watch for user changes to restart notification service
-  useEffect(() => {
-      if (user) {
-          notificationService.startService(user);
-          setNotifications(StorageService.getNotifications(user.id));
-      } else {
-          notificationService.stopService();
-          setNotifications([]);
-      }
-  }, [user]);
-
   const login = async (email: string, pass: string): Promise<boolean> => {
-    const users = StorageService.getUsers();
-    const found = users.find(u => u.email === email && u.password === pass && u.isActive);
-    if (found) {
-      setUser(found);
-      StorageService.setCurrentUser(found.id);
-      notificationService.requestPermission();
-      return true;
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) {
+        console.error(error);
+        return false;
     }
-    return false;
+    return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    StorageService.setCurrentUser(null);
   };
 
-  const refreshUser = () => {
-      const currentUser = StorageService.getCurrentUser();
-      setUser(currentUser);
-      setPlans(StorageService.getPlanConfigs());
+  const refreshUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+          const profile = await StorageService.getCurrentUser(session.user.id);
+          setUser(profile);
+      }
   };
 
   const refreshNotifications = () => {
@@ -82,7 +86,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const updatePlans = (newPlans: Record<PlanType, PlanConfig>) => {
-      StorageService.savePlanConfigs(newPlans);
+      // Plans are static in this implementation for simplicity
       setPlans(newPlans);
   };
 

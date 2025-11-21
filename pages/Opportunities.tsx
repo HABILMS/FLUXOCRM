@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { StorageService } from '../services/storage';
@@ -17,8 +18,11 @@ export const Opportunities: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-        setOpportunities(StorageService.getOpportunities(user.id));
-        setContacts(StorageService.getContacts(user.id));
+        const loadData = async () => {
+            setOpportunities(await StorageService.getOpportunities(user.id));
+            setContacts(await StorageService.getContacts(user.id));
+        };
+        loadData();
     }
   }, [user, isModalOpen]);
 
@@ -26,7 +30,7 @@ export const Opportunities: React.FC = () => {
   const plan = plans[user.plan];
   const canAdd = plan.maxOpportunities === -1 || opportunities.length < plan.maxOpportunities;
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const contact = contacts.find(c => c.id === formData.contactId);
     if (!contact) return;
@@ -41,15 +45,15 @@ export const Opportunities: React.FC = () => {
         status: formData.status,
         createdAt: new Date().toISOString()
     };
-    StorageService.saveOpportunity(newOpp);
+    await StorageService.saveOpportunity(newOpp);
     setIsModalOpen(false);
     setFormData({ contactId: '', product: '', value: 0, status: OpportunityStatus.OPEN });
   };
 
-  const updateStatus = (opp: Opportunity, newStatus: OpportunityStatus) => {
+  const updateStatus = async (opp: Opportunity, newStatus: OpportunityStatus) => {
       const updated = { ...opp, status: newStatus };
-      StorageService.saveOpportunity(updated);
-      setOpportunities(StorageService.getOpportunities(user.id)); // Refresh
+      await StorageService.saveOpportunity(updated);
+      setOpportunities(await StorageService.getOpportunities(user.id)); // Refresh
   };
 
   const columns = [

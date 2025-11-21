@@ -41,11 +41,11 @@ class NotificationService {
     }
   }
 
-  private checkActivities(user: User) {
-    const settings = StorageService.getUserSettings(user.id);
+  private async checkActivities(user: User) {
+    const settings = await StorageService.getUserSettings(user.id);
     if (!settings.notificationsEnabled) return;
 
-    const activities = StorageService.getActivities(user.id);
+    const activities = await StorageService.getActivities(user.id);
     const now = new Date();
     const alertWindow = settings.activityAlertMinutes; // e.g., 15 minutes
 

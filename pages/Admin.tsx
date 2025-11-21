@@ -16,20 +16,20 @@ export const Admin: React.FC = () => {
       refreshData();
   }, [plans]);
 
-  const refreshData = () => {
-      setUsers(StorageService.getUsers());
+  const refreshData = async () => {
+      setUsers(await StorageService.getUsers());
       setEditingPlans(plans);
-      setDbStats(StorageService.getDatabaseStats());
+      setDbStats(await StorageService.getDatabaseStats());
   };
 
   if (!user || user.role !== 'ADMIN') return <div>Acesso negado.</div>;
 
-  const handlePlanChange = (userId: string, newPlan: PlanType) => {
+  const handlePlanChange = async (userId: string, newPlan: PlanType) => {
       const targetUser = users.find(u => u.id === userId);
       if (targetUser) {
           const updated = { ...targetUser, plan: newPlan };
-          StorageService.saveUser(updated);
-          setUsers(StorageService.getUsers());
+          await StorageService.saveUser(updated);
+          setUsers(await StorageService.getUsers());
       }
   };
 
@@ -38,8 +38,8 @@ export const Admin: React.FC = () => {
       alert("Configurações de planos salvas!");
   };
 
-  const handleExport = () => {
-      const data = StorageService.exportDatabase();
+  const handleExport = async () => {
+      const data = await StorageService.exportDatabase();
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -53,9 +53,9 @@ export const Admin: React.FC = () => {
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
           const json = event.target?.result as string;
-          if (StorageService.importDatabase(json)) {
+          if (await StorageService.importDatabase(json)) {
               alert("Banco de dados restaurado com sucesso! A página será recarregada.");
               window.location.reload();
           } else {
@@ -65,9 +65,9 @@ export const Admin: React.FC = () => {
       reader.readAsText(file);
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
       if (confirm("ATENÇÃO: Isso apagará TODOS os dados do sistema e restaurará os usuários padrão. Essa ação não pode ser desfeita. Continuar?")) {
-          StorageService.resetDatabase();
+          await StorageService.resetDatabase();
       }
   };
 
@@ -132,10 +132,10 @@ export const Admin: React.FC = () => {
                                 <td className="p-4 text-right">
                                     {u.role !== 'ADMIN' && (
                                         <button 
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 if(confirm('Excluir usuário e todos os dados associados?')) {
-                                                    StorageService.deleteUser(u.id); 
-                                                    setUsers(StorageService.getUsers());
+                                                    await StorageService.deleteUser(u.id); 
+                                                    setUsers(await StorageService.getUsers());
                                                 }
                                             }} 
                                             className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"

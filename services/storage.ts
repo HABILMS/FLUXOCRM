@@ -1,18 +1,6 @@
 
+import { supabase } from './supabase';
 import { User, Contact, Opportunity, Expense, Activity, PlanType, UserRole, PlanConfig, OpportunityStatus, AppNotification, UserSettings, BotConfig } from '../types';
-
-const KEYS = {
-  USERS: 'fluxo_users',
-  CONTACTS: 'fluxo_contacts',
-  OPPORTUNITIES: 'fluxo_opportunities',
-  EXPENSES: 'fluxo_expenses',
-  ACTIVITIES: 'fluxo_activities',
-  NOTIFICATIONS: 'fluxo_notifications',
-  PLANS: 'fluxo_plan_configs',
-  SETTINGS: 'fluxo_user_settings',
-  BOT_CONFIGS: 'fluxo_bot_configs',
-  CURRENT_USER: 'fluxo_current_user'
-};
 
 const DEFAULT_PLANS: Record<PlanType, PlanConfig> = {
   [PlanType.BASIC]: {
@@ -41,293 +29,207 @@ const DEFAULT_PLANS: Record<PlanType, PlanConfig> = {
   }
 };
 
+// Helper to map database snake_case to frontend camelCase
+const mapProfileToUser = (p: any): User => ({
+    id: p.id,
+    name: p.name || 'Usuário',
+    email: p.email || '',
+    role: (p.role as UserRole) || UserRole.USER,
+    plan: (p.plan as PlanType) || PlanType.BASIC,
+    isActive: p.is_active,
+    avatar: p.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name || 'User')}&background=random`
+});
+
 export const StorageService = {
   init() {
-    if (!localStorage.getItem(KEYS.PLANS)) {
-      this.savePlanConfigs(DEFAULT_PLANS);
-    }
+      // Supabase init handled by client
+  },
 
-    if (!localStorage.getItem(KEYS.USERS)) {
-      const defaultUsers: User[] = [
-        {
-          id: 'admin-1',
-          name: 'Administrador',
-          email: 'admin@fluxo.com',
-          password: 'admin',
-          role: UserRole.ADMIN,
-          plan: PlanType.EXPERT,
-          isActive: true,
-          avatar: 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff'
-        },
-        {
-          id: 'user-1',
-          name: 'Maria Silva',
-          email: 'maria@client.com',
-          password: '123',
-          role: UserRole.USER,
-          plan: PlanType.EXPERT,
-          isActive: true,
-          avatar: 'https://ui-avatars.com/api/?name=Maria+Silva&background=random'
-        },
-        {
-          id: 'user-2',
-          name: 'João Souza',
-          email: 'joao@client.com',
-          password: '123',
-          role: UserRole.USER,
-          plan: PlanType.BASIC,
-          isActive: true,
-          avatar: 'https://ui-avatars.com/api/?name=Joao+Souza&background=random'
-        }
-      ];
-      localStorage.setItem(KEYS.USERS, JSON.stringify(defaultUsers));
+  // --- USERS & AUTH METADATA ---
+
+  async getCurrentUser(authId: string): Promise<User | null> {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authId)
+        .single();
       
-      // Create default settings for these users
-      defaultUsers.forEach(u => {
-          this.saveUserSettings({
-              userId: u.id,
-              notificationsEnabled: true,
-              activityAlertMinutes: 15
-          });
-      });
-    }
+      if (error || !data) return null;
+      return mapProfileToUser(data);
   },
 
-  // Database Management
-  exportDatabase(): string {
-    const data: any = {};
-    Object.values(KEYS).forEach(key => {
-        const item = localStorage.getItem(key);
-        if (item) {
-            try {
-                data[key] = JSON.parse(item);
-            } catch (e) {
-                data[key] = item;
-            }
-        }
-    });
-    return JSON.stringify(data, null, 2);
+  async getUsers(): Promise<User[]> {
+      const { data } = await supabase.from('profiles').select('*');
+      return (data || []).map(mapProfileToUser);
   },
 
-  importDatabase(jsonString: string): boolean {
-      try {
-          const data = JSON.parse(jsonString);
-          // Validate basic structure
-          if (!data[KEYS.USERS] || !Array.isArray(data[KEYS.USERS])) {
-              throw new Error("Invalid database format");
-          }
-
-          // Clear and set
-          localStorage.clear();
-          Object.keys(data).forEach(key => {
-              const value = typeof data[key] === 'string' ? data[key] : JSON.stringify(data[key]);
-              localStorage.setItem(key, value);
-          });
-          return true;
-      } catch (e) {
-          console.error("Import failed", e);
-          return false;
-      }
+  async saveUser(user: User): Promise<void> {
+      await supabase.from('profiles').update({
+          name: user.name,
+          role: user.role,
+          plan: user.plan,
+          is_active: user.isActive
+      }).eq('id', user.id);
   },
 
-  resetDatabase() {
-      localStorage.clear();
-      this.init();
-      window.location.reload();
+  async deleteUser(id: string): Promise<void> {
+      await supabase.from('profiles').delete().eq('id', id);
   },
 
-  getDatabaseStats() {
-      return {
-          users: this.getUsers().length,
-          contacts: JSON.parse(localStorage.getItem(KEYS.CONTACTS) || '[]').length,
-          opportunities: JSON.parse(localStorage.getItem(KEYS.OPPORTUNITIES) || '[]').length,
-          expenses: JSON.parse(localStorage.getItem(KEYS.EXPENSES) || '[]').length,
-          activities: JSON.parse(localStorage.getItem(KEYS.ACTIVITIES) || '[]').length,
-          sizeKB: (JSON.stringify(localStorage).length / 1024).toFixed(2)
+  // --- CONTACTS ---
+
+  async getContacts(userId: string): Promise<Contact[]> {
+      const { data } = await supabase.from('contacts').select('*').eq('user_id', userId);
+      return (data || []).map((c: any) => ({
+          id: c.id,
+          userId: c.user_id,
+          name: c.name,
+          company: c.company,
+          email: c.email,
+          phone: c.phone,
+          address: c.address,
+          lastInteraction: c.last_interaction
+      }));
+  },
+
+  async saveContact(contact: Contact): Promise<void> {
+      const payload = {
+          id: contact.id, // Supabase will use this if provided, or generate if new
+          user_id: contact.userId,
+          name: contact.name,
+          company: contact.company,
+          email: contact.email,
+          phone: contact.phone,
+          address: contact.address,
+          last_interaction: contact.lastInteraction
       };
+      await supabase.from('contacts').upsert(payload);
   },
 
-  // User Auth & Management
-  getUsers(): User[] {
-    return JSON.parse(localStorage.getItem(KEYS.USERS) || '[]');
+  async deleteContact(id: string): Promise<void> {
+      await supabase.from('contacts').delete().eq('id', id);
   },
 
-  saveUser(user: User) {
-    const users = this.getUsers();
-    const index = users.findIndex(u => u.id === user.id);
-    if (index >= 0) {
-      users[index] = user;
-    } else {
-      users.push(user);
-    }
-    localStorage.setItem(KEYS.USERS, JSON.stringify(users));
-  },
+  // --- OPPORTUNITIES ---
 
-  deleteUser(id: string) {
-      // Cascading Delete: Remove all data belonging to this user
-      let users = this.getUsers().filter(u => u.id !== id);
-      localStorage.setItem(KEYS.USERS, JSON.stringify(users));
-
-      const contacts = this.getAllContacts().filter(c => c.userId !== id);
-      localStorage.setItem(KEYS.CONTACTS, JSON.stringify(contacts));
-
-      const opps = this.getAllOpportunities().filter(o => o.userId !== id);
-      localStorage.setItem(KEYS.OPPORTUNITIES, JSON.stringify(opps));
-
-      const expenses = this.getAllExpenses().filter(e => e.userId !== id);
-      localStorage.setItem(KEYS.EXPENSES, JSON.stringify(expenses));
+  async getOpportunities(userId: string): Promise<Opportunity[]> {
+      const { data } = await supabase
+        .from('opportunities')
+        .select('*, contacts(name)')
+        .eq('user_id', userId);
       
-      const activities = this.getAllActivities().filter(a => a.userId !== id);
-      localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(activities));
-
-      // Clean settings and bot configs
-      let settings = this.getAllUserSettings().filter(s => s.userId !== id);
-      localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
-      
-      let bots = this.getAllBotConfigs().filter(b => b.userId !== id);
-      localStorage.setItem(KEYS.BOT_CONFIGS, JSON.stringify(bots));
-      
-      // Clean notifications
-      const notifs = JSON.parse(localStorage.getItem(KEYS.NOTIFICATIONS) || '[]') as AppNotification[];
-      const updatedNotifs = notifs.filter(n => n.userId !== id);
-      localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(updatedNotifs));
+      return (data || []).map((o: any) => ({
+          id: o.id,
+          userId: o.user_id,
+          contactId: o.contact_id,
+          contactName: o.contacts?.name || 'Desconhecido',
+          product: o.product,
+          value: o.value,
+          status: o.status as OpportunityStatus,
+          createdAt: o.created_at
+      }));
   },
 
-  getCurrentUser(): User | null {
-    const id = localStorage.getItem(KEYS.CURRENT_USER);
-    if (!id) return null;
-    return this.getUsers().find(u => u.id === id) || null;
+  async saveOpportunity(opp: Opportunity): Promise<void> {
+      const payload = {
+          id: opp.id,
+          user_id: opp.userId,
+          contact_id: opp.contactId,
+          product: opp.product,
+          value: opp.value,
+          status: opp.status,
+          created_at: opp.createdAt
+      };
+      await supabase.from('opportunities').upsert(payload);
   },
 
-  setCurrentUser(id: string | null) {
-    if (id) {
-      localStorage.setItem(KEYS.CURRENT_USER, id);
-    } else {
-      localStorage.removeItem(KEYS.CURRENT_USER);
-    }
+  async deleteOpportunity(id: string): Promise<void> {
+      await supabase.from('opportunities').delete().eq('id', id);
   },
 
-  // Contacts
-  getAllContacts(): Contact[] {
-      return JSON.parse(localStorage.getItem(KEYS.CONTACTS) || '[]');
-  },
-  getContacts(userId: string): Contact[] {
-    return this.getAllContacts().filter(c => c.userId === userId);
-  },
-  saveContact(contact: Contact) {
-    const contacts = this.getAllContacts();
-    const index = contacts.findIndex(c => c.id === contact.id);
-    if (index >= 0) {
-      contacts[index] = contact;
-    } else {
-      contacts.push(contact);
-    }
-    localStorage.setItem(KEYS.CONTACTS, JSON.stringify(contacts));
-  },
-  deleteContact(id: string) {
-      const contacts = this.getAllContacts().filter(c => c.id !== id);
-      localStorage.setItem(KEYS.CONTACTS, JSON.stringify(contacts));
-      
-      // Cascade: Delete opportunities for this contact
-      const opps = this.getAllOpportunities().filter(o => o.contactId !== id);
-      localStorage.setItem(KEYS.OPPORTUNITIES, JSON.stringify(opps));
+  // --- EXPENSES ---
+
+  async getExpenses(userId: string): Promise<Expense[]> {
+      const { data } = await supabase.from('expenses').select('*').eq('user_id', userId);
+      return (data || []).map((e: any) => ({
+          id: e.id,
+          userId: e.user_id,
+          description: e.description,
+          amount: e.amount,
+          category: e.category,
+          date: e.date,
+          type: e.type
+      }));
   },
 
-  // Opportunities
-  getAllOpportunities(): Opportunity[] {
-      return JSON.parse(localStorage.getItem(KEYS.OPPORTUNITIES) || '[]');
-  },
-  getOpportunities(userId: string): Opportunity[] {
-    return this.getAllOpportunities().filter(o => o.userId === userId);
-  },
-  saveOpportunity(opp: Opportunity) {
-    const opps = this.getAllOpportunities();
-    const index = opps.findIndex(o => o.id === opp.id);
-    if (index >= 0) {
-      opps[index] = opp;
-    } else {
-      opps.push(opp);
-    }
-    localStorage.setItem(KEYS.OPPORTUNITIES, JSON.stringify(opps));
-  },
-  deleteOpportunity(id: string) {
-      const opps = this.getAllOpportunities().filter(o => o.id !== id);
-      localStorage.setItem(KEYS.OPPORTUNITIES, JSON.stringify(opps));
-
-      // Cascade: Unlink activities from this opportunity
-      const activities = this.getAllActivities();
-      const updatedActivities = activities.map(a => {
-          if (a.opportunityId === id) {
-              // Remove the opportunityId reference
-              const { opportunityId, ...rest } = a;
-              return rest as Activity;
-          }
-          return a;
-      });
-      localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(updatedActivities));
+  async saveExpense(expense: Expense): Promise<void> {
+      const payload = {
+          id: expense.id,
+          user_id: expense.userId,
+          description: expense.description,
+          amount: expense.amount,
+          category: expense.category,
+          date: expense.date,
+          type: expense.type
+      };
+      await supabase.from('expenses').upsert(payload);
   },
 
-  // Expenses
-  getAllExpenses(): Expense[] {
-      return JSON.parse(localStorage.getItem(KEYS.EXPENSES) || '[]');
-  },
-  getExpenses(userId: string): Expense[] {
-    return this.getAllExpenses().filter(e => e.userId === userId);
-  },
-  saveExpense(expense: Expense) {
-    const expenses = this.getAllExpenses();
-    const index = expenses.findIndex(e => e.id === expense.id);
-    if (index >= 0) {
-      expenses[index] = expense;
-    } else {
-      expenses.push(expense);
-    }
-    localStorage.setItem(KEYS.EXPENSES, JSON.stringify(expenses));
-  },
-  deleteExpense(id: string) {
-      const expenses = this.getAllExpenses().filter(e => e.id !== id);
-      localStorage.setItem(KEYS.EXPENSES, JSON.stringify(expenses));
+  async deleteExpense(id: string): Promise<void> {
+      await supabase.from('expenses').delete().eq('id', id);
   },
 
-  // Activities
-  getAllActivities(): Activity[] {
-      return JSON.parse(localStorage.getItem(KEYS.ACTIVITIES) || '[]');
-  },
-  getActivities(userId: string): Activity[] {
-    return this.getAllActivities().filter(a => a.userId === userId);
-  },
-  saveActivity(activity: Activity) {
-    const activities = this.getAllActivities();
-    const index = activities.findIndex(a => a.id === activity.id);
-    if (index >= 0) {
-      activities[index] = activity;
-    } else {
-      activities.push(activity);
-    }
-    localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(activities));
-  },
-  deleteActivity(id: string) {
-      const activities = this.getAllActivities().filter(a => a.id !== id);
-      localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(activities));
+  // --- ACTIVITIES ---
+
+  async getActivities(userId: string): Promise<Activity[]> {
+      const { data } = await supabase.from('activities').select('*').eq('user_id', userId);
+      return (data || []).map((a: any) => ({
+          id: a.id,
+          userId: a.user_id,
+          opportunityId: a.opportunity_id || undefined,
+          title: a.title,
+          description: a.description,
+          date: a.date,
+          completed: a.completed,
+          notified: a.notified
+      }));
   },
 
-  // Plans
+  async saveActivity(activity: Activity): Promise<void> {
+      const payload = {
+          id: activity.id,
+          user_id: activity.userId,
+          opportunity_id: activity.opportunityId || null,
+          title: activity.title,
+          description: activity.description,
+          date: activity.date,
+          completed: activity.completed,
+          notified: activity.notified
+      };
+      await supabase.from('activities').upsert(payload);
+  },
+
+  async deleteActivity(id: string): Promise<void> {
+      await supabase.from('activities').delete().eq('id', id);
+  },
+
+  // --- PLANS (Static for now) ---
+
   getPlanConfigs(): Record<PlanType, PlanConfig> {
-    return JSON.parse(localStorage.getItem(KEYS.PLANS) || JSON.stringify(DEFAULT_PLANS));
+      // In a real app, these might come from DB too, but static is fine
+      return DEFAULT_PLANS;
   },
 
-  savePlanConfigs(configs: Record<PlanType, PlanConfig>) {
-    localStorage.setItem(KEYS.PLANS, JSON.stringify(configs));
-  },
-
-  // Notifications
+  // --- NOTIFICATIONS (Local Storage is fine for transient UI notifs, or move to DB) ---
+  // Maintaining Local Storage for notifications to avoid complex realtime DB setup for now
+  
   getNotifications(userId: string): AppNotification[] {
-      const all = JSON.parse(localStorage.getItem(KEYS.NOTIFICATIONS) || '[]') as AppNotification[];
+      const all = JSON.parse(localStorage.getItem('fluxo_notifications') || '[]') as AppNotification[];
       return all.filter(n => n.userId === userId).sort((a,b) => b.timestamp - a.timestamp);
   },
 
   createNotification(userId: string, title: string, message: string, type: 'ACTIVITY' | 'SYSTEM' | 'OPPORTUNITY') {
-      const all = JSON.parse(localStorage.getItem(KEYS.NOTIFICATIONS) || '[]') as AppNotification[];
+      const all = JSON.parse(localStorage.getItem('fluxo_notifications') || '[]') as AppNotification[];
       const newNotif: AppNotification = {
           id: crypto.randomUUID(),
           userId,
@@ -338,85 +240,153 @@ export const StorageService = {
           type
       };
       all.push(newNotif);
-      
-      // Limit logic: keep last 200 globally or filter per user
       if (all.length > 200) {
-        // Remove oldest
         all.sort((a,b) => a.timestamp - b.timestamp);
         while(all.length > 200) all.shift();
       }
-      
-      localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(all));
+      localStorage.setItem('fluxo_notifications', JSON.stringify(all));
       return newNotif;
   },
 
   markNotificationRead(id: string) {
-      const all = JSON.parse(localStorage.getItem(KEYS.NOTIFICATIONS) || '[]') as AppNotification[];
+      const all = JSON.parse(localStorage.getItem('fluxo_notifications') || '[]') as AppNotification[];
       const index = all.findIndex(n => n.id === id);
       if (index >= 0) {
           all[index].read = true;
-          localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(all));
+          localStorage.setItem('fluxo_notifications', JSON.stringify(all));
       }
   },
 
   markAllNotificationsRead(userId: string) {
-      const all = JSON.parse(localStorage.getItem(KEYS.NOTIFICATIONS) || '[]') as AppNotification[];
+      const all = JSON.parse(localStorage.getItem('fluxo_notifications') || '[]') as AppNotification[];
       const updated = all.map(n => n.userId === userId ? {...n, read: true} : n);
-      localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(updated));
+      localStorage.setItem('fluxo_notifications', JSON.stringify(updated));
   },
 
-  // Settings
-  getAllUserSettings(): UserSettings[] {
-      return JSON.parse(localStorage.getItem(KEYS.SETTINGS) || '[]');
-  },
-  getUserSettings(userId: string): UserSettings {
-      const all = this.getAllUserSettings();
-      const found = all.find(s => s.userId === userId);
-      if (found) return found;
+  // --- USER SETTINGS ---
+
+  async getUserSettings(userId: string): Promise<UserSettings> {
+      const { data } = await supabase.from('profiles').select('notifications_enabled, activity_alert_minutes, google_api_key').eq('id', userId).single();
       
-      // Default
       return {
           userId,
-          notificationsEnabled: false,
-          activityAlertMinutes: 15
+          notificationsEnabled: data?.notifications_enabled || false,
+          activityAlertMinutes: data?.activity_alert_minutes || 15,
+          googleApiKey: data?.google_api_key || undefined
       };
   },
-  saveUserSettings(settings: UserSettings) {
-      let all = this.getAllUserSettings();
-      const index = all.findIndex(s => s.userId === settings.userId);
-      if (index >= 0) {
-          all[index] = settings;
-      } else {
-          all.push(settings);
-      }
-      localStorage.setItem(KEYS.SETTINGS, JSON.stringify(all));
+
+  async saveUserSettings(settings: UserSettings): Promise<void> {
+      await supabase.from('profiles').update({
+          notifications_enabled: settings.notificationsEnabled,
+          activity_alert_minutes: settings.activityAlertMinutes,
+          google_api_key: settings.googleApiKey
+      }).eq('id', settings.userId);
   },
 
-  // Bot Config
-  getAllBotConfigs(): BotConfig[] {
-      return JSON.parse(localStorage.getItem(KEYS.BOT_CONFIGS) || '[]');
-  },
-  getBotConfig(userId: string): BotConfig {
-      const all = this.getAllBotConfigs();
-      const found = all.find(b => b.userId === userId);
-      if (found) return found;
+  // --- BOT CONFIGS ---
+
+  async getBotConfig(userId: string): Promise<BotConfig> {
+      const { data } = await supabase.from('bot_configs').select('*').eq('user_id', userId).single();
+      
+      if (!data) {
+          return {
+              userId,
+              whatsappNumber: '',
+              botName: '',
+              systemInstructions: '',
+              isConnected: false
+          };
+      }
 
       return {
           userId,
-          whatsappNumber: '',
-          botName: '',
-          systemInstructions: '',
-          isConnected: false
+          whatsappNumber: data.whatsapp_number,
+          botName: data.bot_name,
+          businessDescription: data.business_description,
+          productsAndPrices: data.products_prices,
+          operatingHours: data.operating_hours,
+          communicationTone: data.communication_tone,
+          systemInstructions: data.system_instructions,
+          isConnected: data.is_connected,
+          lastConnection: data.last_connection,
+          connectionStatus: data.is_connected ? 'connected' : 'disconnected'
       };
   },
-  saveBotConfig(config: BotConfig) {
-      let all = this.getAllBotConfigs();
-      const index = all.findIndex(b => b.userId === config.userId);
-      if (index >= 0) {
-          all[index] = config;
-      } else {
-          all.push(config);
+
+  async saveBotConfig(config: BotConfig): Promise<void> {
+      const payload = {
+          user_id: config.userId,
+          whatsapp_number: config.whatsappNumber,
+          bot_name: config.botName,
+          business_description: config.businessDescription,
+          products_prices: config.productsAndPrices,
+          operating_hours: config.operatingHours,
+          communication_tone: config.communicationTone,
+          system_instructions: config.systemInstructions,
+          is_connected: config.isConnected,
+          last_connection: config.lastConnection
+      };
+      await supabase.from('bot_configs').upsert(payload);
+  },
+
+  // --- DATABASE MGMT ---
+
+  async getDatabaseStats() {
+      const { count: users } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+      const { count: contacts } = await supabase.from('contacts').select('*', { count: 'exact', head: true });
+      const { count: opportunities } = await supabase.from('opportunities').select('*', { count: 'exact', head: true });
+      const { count: activities } = await supabase.from('activities').select('*', { count: 'exact', head: true });
+      
+      let size = 0;
+      for(let x in localStorage) {
+          if(x.startsWith('fluxo_')) size += ((localStorage[x].length * 2));
       }
-      localStorage.setItem(KEYS.BOT_CONFIGS, JSON.stringify(all));
+
+      return {
+          users: users || 0,
+          contacts: contacts || 0,
+          opportunities: opportunities || 0,
+          activities: activities || 0,
+          sizeKB: (size / 1024).toFixed(2)
+      };
+  },
+
+  async exportDatabase(): Promise<string> {
+      const { data: profiles } = await supabase.from('profiles').select('*');
+      const { data: contacts } = await supabase.from('contacts').select('*');
+      const { data: opportunities } = await supabase.from('opportunities').select('*');
+      const { data: expenses } = await supabase.from('expenses').select('*');
+      const { data: activities } = await supabase.from('activities').select('*');
+      const { data: botConfigs } = await supabase.from('bot_configs').select('*');
+
+      const dump = {
+          profiles, contacts, opportunities, expenses, activities, botConfigs,
+          timestamp: new Date().toISOString()
+      };
+      return JSON.stringify(dump, null, 2);
+  },
+
+  async importDatabase(json: string): Promise<boolean> {
+      try {
+          const data = JSON.parse(json);
+          if(data.profiles) await supabase.from('profiles').upsert(data.profiles);
+          if(data.contacts) await supabase.from('contacts').upsert(data.contacts);
+          if(data.opportunities) await supabase.from('opportunities').upsert(data.opportunities);
+          if(data.expenses) await supabase.from('expenses').upsert(data.expenses);
+          if(data.activities) await supabase.from('activities').upsert(data.activities);
+          if(data.botConfigs) await supabase.from('bot_configs').upsert(data.botConfigs);
+          return true;
+      } catch (e) {
+          console.error(e);
+          return false;
+      }
+  },
+
+  async resetDatabase(): Promise<void> {
+      await supabase.from('activities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('expenses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('opportunities').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('contacts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   }
 };

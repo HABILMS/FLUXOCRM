@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { StorageService } from '../services/storage';
@@ -11,7 +12,12 @@ export const Expenses: React.FC = () => {
   const [formData, setFormData] = useState({ description: '', amount: 0, category: 'Geral', type: 'EXPENSE' as 'INCOME' | 'EXPENSE' });
 
   useEffect(() => {
-    if (user) setExpenses(StorageService.getExpenses(user.id));
+    if (user) {
+        const loadExpenses = async () => {
+            setExpenses(await StorageService.getExpenses(user.id));
+        };
+        loadExpenses();
+    }
   }, [user, isModalOpen]);
 
   if (!user) return null;
@@ -27,7 +33,7 @@ export const Expenses: React.FC = () => {
       );
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const newExpense: Expense = {
         id: crypto.randomUUID(),
@@ -38,7 +44,7 @@ export const Expenses: React.FC = () => {
         type: formData.type,
         date: new Date().toISOString()
     };
-    StorageService.saveExpense(newExpense);
+    await StorageService.saveExpense(newExpense);
     setIsModalOpen(false);
     setFormData({ description: '', amount: 0, category: 'Geral', type: 'EXPENSE' });
   };

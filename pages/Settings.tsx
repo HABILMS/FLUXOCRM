@@ -15,9 +15,12 @@ export const Settings: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      const userSettings = StorageService.getUserSettings(user.id);
-      setSettings(userSettings);
-      setCustomKey(userSettings.googleApiKey || '');
+      const loadSettings = async () => {
+        const userSettings = await StorageService.getUserSettings(user.id);
+        setSettings(userSettings);
+        setCustomKey(userSettings.googleApiKey || '');
+      };
+      loadSettings();
     }
     checkApiKey();
   }, [user]);

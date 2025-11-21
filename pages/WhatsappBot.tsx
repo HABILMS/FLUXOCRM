@@ -26,14 +26,21 @@ export const WhatsappBot: React.FC = () => {
   
   // AI Session
   const [aiSession, setAiSession] = useState<Chat | null>(null);
+  const [apiKey, setApiKey] = useState('');
 
   useEffect(() => {
     if (user) {
-        const stored = StorageService.getBotConfig(user.id);
-        setConfig(stored);
-        if (stored.isConnected) {
-            startSimulation(stored);
+        const load = async () => {
+            const stored = await StorageService.getBotConfig(user.id);
+            setConfig(stored);
+            const settings = await StorageService.getUserSettings(user.id);
+            setApiKey(settings.googleApiKey || process.env.API_KEY || '');
+            
+            if (stored.isConnected) {
+                startSimulation(stored, settings.googleApiKey || process.env.API_KEY || '');
+            }
         }
+        load();
     }
   }, [user]);
 
@@ -54,12 +61,6 @@ export const WhatsappBot: React.FC = () => {
       return () => clearInterval(timer);
   }, [scanStatus, timeLeft]);
 
-  const getApiKey = () => {
-    if (!user) return '';
-    const settings = StorageService.getUserSettings(user.id);
-    return settings.googleApiKey || process.env.API_KEY || '';
-  };
-
   const startConnection = () => {
       setScanStatus('loading');
       // Simulate API Call to get QR
@@ -70,22 +71,22 @@ export const WhatsappBot: React.FC = () => {
       }, 1500);
   };
 
-  const completeConnection = () => {
+  const completeConnection = async () => {
       setScanStatus('success');
-      setTimeout(() => {
+      setTimeout(async () => {
           const updated = { ...config, isConnected: true, lastConnection: new Date().toISOString(), connectionStatus: 'connected' as const };
           setConfig(updated);
-          StorageService.saveBotConfig(updated);
+          await StorageService.saveBotConfig(updated);
           setScanStatus('idle');
-          startSimulation(updated);
+          startSimulation(updated, apiKey);
       }, 1000);
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
       if(confirm('Deseja desconectar? O bot parará de responder.')) {
         const updated = { ...config, isConnected: false, connectionStatus: 'disconnected' as const };
         setConfig(updated);
-        StorageService.saveBotConfig(updated);
+        await StorageService.saveBotConfig(updated);
         setAiSession(null);
         setChatHistory([]);
       }
@@ -114,16 +115,15 @@ export const WhatsappBot: React.FC = () => {
       `;
   };
 
-  const startSimulation = (currentConfig: BotConfig) => {
-      const apiKey = getApiKey();
-      if (!apiKey) {
+  const startSimulation = (currentConfig: BotConfig, key: string) => {
+      if (!key) {
           setChatHistory([{role: 'model', text: 'ERRO: Chave de API não encontrada. Configure em Configurações.'}]);
           return;
       }
 
       try {
         const instruction = buildSystemInstruction(currentConfig);
-        const ai = new GoogleGenAI({ apiKey });
+        const ai = new GoogleGenAI({ apiKey: key });
         const session = ai.chats.create({
             model: 'gemini-3-pro-preview',
             config: {
@@ -138,16 +138,16 @@ export const WhatsappBot: React.FC = () => {
       }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
       const updatedConfig = {
           ...config,
           systemInstructions: buildSystemInstruction(config)
       };
       setConfig(updatedConfig);
-      StorageService.saveBotConfig(updatedConfig);
+      await StorageService.saveBotConfig(updatedConfig);
       
       if (config.isConnected) {
-          startSimulation(updatedConfig); 
+          startSimulation(updatedConfig, apiKey); 
           alert("Informações atualizadas e bot re-treinado!");
       } else {
           alert("Informações salvas! Conecte o WhatsApp para ativar.");
@@ -163,7 +163,7 @@ export const WhatsappBot: React.FC = () => {
       }
 
       if (!aiSession) {
-          startSimulation(config);
+          startSimulation(config, apiKey);
       }
 
       const userMsg = simMessage;
@@ -175,7 +175,6 @@ export const WhatsappBot: React.FC = () => {
           let currentSession = aiSession;
           if (!currentSession) {
                // Retry creation if lost
-               const apiKey = getApiKey();
                if (!apiKey) throw new Error("Sem API Key");
                const ai = new GoogleGenAI({ apiKey });
                currentSession = ai.chats.create({
@@ -422,7 +421,7 @@ export const WhatsappBot: React.FC = () => {
                           </p>
                       </div>
                       <button 
-                        onClick={() => config.isConnected && startSimulation(config)} 
+                        onClick={() => config.isConnected && apiKey && startSimulation(config, apiKey)} 
                         className="ml-auto p-2 hover:bg-white/10 rounded-full transition-colors"
                         title="Reiniciar conversa"
                       >
