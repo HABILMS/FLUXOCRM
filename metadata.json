@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Fluxo CRM",
+  "description": "A comprehensive CRM for freelancers and consultants with tiered subscriptions, financial tracking, and a Gemini-powered AI assistant.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
