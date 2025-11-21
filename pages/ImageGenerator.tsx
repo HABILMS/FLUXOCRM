@@ -98,18 +98,34 @@ export const ImageGenerator: React.FC = () => {
         if (isQuotaError) {
              console.warn("Pro model quota exceeded, falling back to Flash.");
              setUsedFallback(true);
-             response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-image',
-                contents: {
-                  parts: [{ text: prompt }],
-                },
-                config: {
-                  imageConfig: {
-                    aspectRatio: aspectRatio,
-                    // imageSize is not supported on flash-image
-                  },
-                },
-             });
+             try {
+                 response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash-image',
+                    contents: {
+                      parts: [{ text: prompt }],
+                    },
+                    config: {
+                      imageConfig: {
+                        aspectRatio: aspectRatio,
+                        // imageSize is not supported on flash-image
+                      },
+                    },
+                 });
+             } catch (fallbackError: any) {
+                 console.error("Fallback model also failed:", fallbackError);
+                 // Check if fallback error is also quota related
+                 const fbErrStr = JSON.stringify(fallbackError);
+                 const isFbQuota = fallbackError.status === 429 || 
+                                   fallbackError.message?.includes('429') || 
+                                   fallbackError.message?.includes('quota') || 
+                                   fallbackError.message?.includes('RESOURCE_EXHAUSTED') || 
+                                   fbErrStr.includes('RESOURCE_EXHAUSTED');
+                 
+                 if (isFbQuota) {
+                     throw new Error("Limite de cota atingido para os modelos de imagem. Verifique seu plano de faturamento ou tente novamente mais tarde.");
+                 }
+                 throw fallbackError;
+             }
         } else {
             throw e;
         }
@@ -130,8 +146,15 @@ export const ImageGenerator: React.FC = () => {
       
     } catch (error: any) {
       console.error("Image Generation Error:", error);
-      const msg = error.message || JSON.stringify(error);
-      setError(`Erro ao gerar imagem: ${msg.slice(0, 100)}... Verifique sua chave API.`);
+      
+      let msg = error.message;
+      if (error.message?.includes('RESOURCE_EXHAUSTED') || JSON.stringify(error).includes('RESOURCE_EXHAUSTED')) {
+          msg = "Cota de requisições excedida. Por favor, aguarde alguns instantes ou verifique o faturamento do seu projeto no Google Cloud.";
+      } else if (!msg) {
+          msg = "Ocorreu um erro desconhecido. Verifique sua chave API.";
+      }
+
+      setError(`Erro: ${msg}`);
     } finally {
       setIsGenerating(false);
     }
@@ -262,26 +285,23 @@ export const ImageGenerator: React.FC = () => {
                               </a>
                           </div>
                           {usedFallback && (
-                              <div className="absolute top-4 left-4 bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-medium border border-amber-200 shadow-sm flex items-center gap-1">
-                                  <Zap size={12} /> Modelo Flash (Cota Pro excedida)
+                              <div className="absolute top-4 left-4 bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold border border-amber-200 flex items-center gap-2 shadow-sm z-10">
+                                  <Zap size={12} /> Usando Modelo Rápido (Flash)
                               </div>
                           )}
                       </>
                   ) : (
                       <div className="text-center text-slate-400">
-                          {isGenerating ? (
-                              <div className="animate-pulse flex flex-col items-center">
-                                  <div className="w-16 h-16 bg-slate-200 rounded-full mb-4"></div>
-                                  <p>Criando sua obra de arte...</p>
-                              </div>
-                          ) : (
-                              <>
-                                <div className="w-20 h-20 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                                    <Image size={32} className="opacity-50" />
-                                </div>
-                                <p>Sua imagem aparecerá aqui</p>
-                              </>
-                          )}
+                          <Image size={48} className="mx-auto mb-4 opacity-20" />
+                          <p>Sua obra de arte aparecerá aqui</p>
+                      </div>
+                  )}
+                  
+                  {isGenerating && (
+                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+                          <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                          <p className="text-indigo-600 font-bold animate-pulse">Criando magia...</p>
+                          <p className="text-xs text-slate-500 mt-2">Isso pode levar alguns segundos</p>
                       </div>
                   )}
               </div>
