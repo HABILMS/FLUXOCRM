@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, Send, X, MessageSquare, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
@@ -40,7 +41,7 @@ export const AIAssistant: React.FC = () => {
       setMessages([{
         id: 'init',
         role: 'model',
-        text: 'Olá! Sou seu assistente virtual. Como posso ajudar hoje? Você pode pedir para navegar, adicionar despesas ou ver oportunidades.',
+        text: 'Olá! Sou seu assistente virtual. Como posso ajudar hoje? Você pode pedir para navegar, adicionar despesas, receitas ou ver oportunidades.',
         timestamp: Date.now()
       }]);
     }
@@ -72,6 +73,22 @@ export const AIAssistant: React.FC = () => {
           }
           return "User not logged in";
       }
+      if (call.name === 'create_income') {
+          const { description, amount, category } = call.args;
+          if (user) {
+              StorageService.saveExpense({
+                  id: crypto.randomUUID(),
+                  userId: user.id,
+                  description,
+                  amount: Number(amount),
+                  category: category || 'Vendas',
+                  date: new Date().toISOString(),
+                  type: 'INCOME'
+              });
+              return `Income created: ${description} for ${amount}`;
+          }
+          return "User not logged in";
+      }
       return "Unknown tool";
   };
 
@@ -96,7 +113,7 @@ export const AIAssistant: React.FC = () => {
     const systemInstruction = `
       Você é um assistente de CRM útil e eficiente. O usuário é um consultor ou vendedor.
       Responda de forma concisa em Português.
-      Você tem acesso a ferramentas para navegar no app e criar despesas.
+      Você tem acesso a ferramentas para navegar no app, criar despesas e REGISTRAR RECEITAS (ganhos).
       Hoje é ${new Date().toLocaleDateString('pt-BR')}.
     `;
 

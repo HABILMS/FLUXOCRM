@@ -46,13 +46,26 @@ export class GeminiService {
         },
         {
             name: 'create_expense',
-            description: 'Record a new personal expense',
+            description: 'Record a new outgoing expense (money spent)',
             parameters: {
                 type: Type.OBJECT,
                 properties: {
                     description: { type: Type.STRING, description: 'What was purchased (e.g., "Lunch")' },
                     amount: { type: Type.NUMBER, description: 'The numeric cost amount' },
                     category: { type: Type.STRING, description: 'Category (e.g., Food, Transport, Office)' }
+                },
+                required: ['description', 'amount']
+            }
+        },
+        {
+            name: 'create_income',
+            description: 'Record a new income or revenue (money received)',
+            parameters: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING, description: 'Source of income (e.g., "Project Sale", "Consulting")' },
+                    amount: { type: Type.NUMBER, description: 'The numeric amount received' },
+                    category: { type: Type.STRING, description: 'Category (e.g., Sales, Services, Salary)' }
                 },
                 required: ['description', 'amount']
             }
