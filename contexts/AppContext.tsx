@@ -28,28 +28,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     setPlans(StorageService.getPlanConfigs());
     
-    // Check Supabase Session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (session?.user) {
-            const profile = await StorageService.getCurrentUser(session.user.id);
-            setUser(profile);
-            if (profile) {
-                setNotifications(StorageService.getNotifications(profile.id));
-                notificationService.requestPermission();
-                notificationService.startService(profile);
+    const initSession = async () => {
+        try {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error) throw error;
+            
+            if (session?.user) {
+                const profile = await StorageService.getCurrentUser(session.user.id);
+                setUser(profile);
+                if (profile) {
+                    setNotifications(StorageService.getNotifications(profile.id));
+                    notificationService.requestPermission();
+                    notificationService.startService(profile);
+                }
             }
+        } catch (err) {
+            console.warn("Supabase initialization failed (offline or unconfigured):", err);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
-    });
+    };
+
+    initSession();
 
     // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        if (session?.user) {
-            const profile = await StorageService.getCurrentUser(session.user.id);
-            setUser(profile);
-        } else {
-            setUser(null);
-            notificationService.stopService();
+        try {
+            if (session?.user) {
+                const profile = await StorageService.getCurrentUser(session.user.id);
+                setUser(profile);
+            } else {
+                setUser(null);
+                notificationService.stopService();
+            }
+        } catch (e) {
+            console.error("Auth state change error:", e);
         }
         setIsLoading(false);
     });
@@ -58,24 +71,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const login = async (email: string, pass: string): Promise<boolean> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) {
-        console.error(error);
-        return false;
+    try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
+        return true;
+    } catch (e) {
+        console.error("Login error:", e);
+        throw e;
     }
-    return true;
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    try {
+        await supabase.auth.signOut();
+    } catch (e) {
+        console.error("Logout error:", e);
+    }
     setUser(null);
   };
 
   const refreshUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-          const profile = await StorageService.getCurrentUser(session.user.id);
-          setUser(profile);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            const profile = await StorageService.getCurrentUser(session.user.id);
+            setUser(profile);
+        }
+      } catch (e) {
+          console.error("Refresh user error:", e);
       }
   };
 

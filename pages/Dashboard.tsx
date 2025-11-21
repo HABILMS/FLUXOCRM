@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { StorageService } from '../services/storage';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Users, DollarSign, AlertCircle, Loader2 } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, AlertCircle, Loader2, ArrowRight, PlusCircle } from 'lucide-react';
 import { OpportunityStatus } from '../types';
+import { Link } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
   const { user, plans } = useApp();
@@ -51,23 +52,67 @@ export const Dashboard: React.FC = () => {
   }, [user]);
 
   if (!user) return null;
-  if (!data) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-indigo-600"/></div>;
+  if (!data) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-indigo-600" size={40}/></div>;
   const plan = plans[user.plan];
 
   const COLORS = ['#6366f1', '#8b5cf6', '#10b981', '#ef4444'];
+
+  // Empty State / Onboarding
+  if (data.contactCount === 0 && data.oppCount === 0) {
+      return (
+          <div className="max-w-4xl mx-auto py-10">
+              <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-10 text-white shadow-2xl">
+                  <h2 className="text-3xl font-bold mb-4">Bem-vindo ao FluxoCRM, {user.name}! 🚀</h2>
+                  <p className="text-indigo-100 text-lg mb-8 max-w-2xl">
+                      Seu sistema está pronto. Parece que você ainda não tem dados. Vamos configurar seu fluxo de trabalho em dois passos simples?
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Link to="/contacts" className="bg-white/10 backdrop-blur-sm border border-white/20 p-6 rounded-2xl hover:bg-white/20 transition-all group">
+                          <div className="bg-white text-indigo-600 w-12 h-12 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                              <Users size={24} />
+                          </div>
+                          <h3 className="text-xl font-bold mb-2">1. Adicione Contatos</h3>
+                          <p className="text-indigo-100 text-sm mb-4">Cadastre seus clientes e parceiros para começar a interagir.</p>
+                          <div className="flex items-center gap-2 font-semibold text-sm">
+                              Começar agora <ArrowRight size={16} />
+                          </div>
+                      </Link>
+
+                      <Link to="/opportunities" className="bg-white/10 backdrop-blur-sm border border-white/20 p-6 rounded-2xl hover:bg-white/20 transition-all group">
+                          <div className="bg-white text-purple-600 w-12 h-12 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                              <TrendingUp size={24} />
+                          </div>
+                          <h3 className="text-xl font-bold mb-2">2. Crie Oportunidades</h3>
+                          <p className="text-indigo-100 text-sm mb-4">Registre negociações e acompanhe seu funil de vendas.</p>
+                          <div className="flex items-center gap-2 font-semibold text-sm">
+                              Criar primeira venda <ArrowRight size={16} />
+                          </div>
+                      </Link>
+                  </div>
+              </div>
+
+              <div className="mt-8 text-center text-slate-500">
+                  <p className="flex items-center justify-center gap-2">
+                      <PlusCircle size={16} /> Dica: Você também pode usar o Assistente IA (botão flutuante) para criar dados falando!
+                  </p>
+              </div>
+          </div>
+      );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800">Dashboard Executivo</h2>
-        <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
+        <span className={`px-3 py-1 rounded-full text-sm font-medium ${data.netBalance >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
             Saldo Líquido: R$ {data.netBalance.toFixed(2)}
         </span>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
                 <div>
                     <p className="text-sm text-slate-500">Total Contatos</p>
@@ -82,7 +127,7 @@ export const Dashboard: React.FC = () => {
             </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
                 <div>
                     <p className="text-sm text-slate-500">Oportunidades</p>
@@ -94,7 +139,7 @@ export const Dashboard: React.FC = () => {
             </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
                 <div>
                     <p className="text-sm text-slate-500">Vendas Fechadas</p>
@@ -106,7 +151,7 @@ export const Dashboard: React.FC = () => {
             </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
                 <div>
                     <p className="text-sm text-slate-500">Em Negociação</p>
@@ -123,37 +168,51 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-80">
               <h3 className="font-semibold text-slate-700 mb-4">Status das Oportunidades</h3>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                    <Pie
-                        data={data.statusData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                    >
-                        {data.statusData.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                    </Pie>
-                    <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              {data.statusData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={data.statusData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                        >
+                            {data.statusData.map((entry: any, index: number) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                        </Pie>
+                        <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+              ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                      <PieChart size={48} className="opacity-20 mb-2" />
+                      <p>Sem dados suficientes</p>
+                  </div>
+              )}
           </div>
 
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-80">
               <h3 className="font-semibold text-slate-700 mb-4">Valor por Produto/Serviço</h3>
-              <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.productData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                      <YAxis axisLine={false} tickLine={false} />
-                      <Tooltip cursor={{fill: 'transparent'}} />
-                      <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-              </ResponsiveContainer>
+              {data.productData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.productData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                          <YAxis axisLine={false} tickLine={false} />
+                          <Tooltip cursor={{fill: 'transparent'}} />
+                          <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                  </ResponsiveContainer>
+              ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                      <BarChart size={48} className="opacity-20 mb-2" />
+                      <p>Sem dados de vendas</p>
+                  </div>
+              )}
           </div>
       </div>
     </div>

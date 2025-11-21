@@ -109,7 +109,7 @@ export const Contacts: React.FC = () => {
           <input 
             type="text" 
             placeholder="Buscar por nome ou empresa..." 
-            className="w-full pl-14 pr-6 py-4 rounded-full border border-slate-200 bg-white focus:bg-slate-50 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none shadow-sm transition-all font-medium text-slate-700 placeholder:text-slate-400"
+            className="w-full pl-14 pr-6 py-4 rounded-full border border-slate-200 bg-white focus:bg-slate-50 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none shadow-sm transition-all font-medium text-slate-900 placeholder:text-slate-400"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
@@ -183,14 +183,14 @@ export const Contacts: React.FC = () => {
                                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-4">Nome</label>
                                   <div className="relative">
                                       <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                      <input type="text" required className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-full outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                                      <input type="text" required className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-full outline-none text-slate-900 focus:ring-2 focus:ring-indigo-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                                   </div>
                               </div>
                               <div className="space-y-2">
                                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-4">Empresa</label>
                                   <div className="relative">
                                       <Building size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                      <input type="text" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-full outline-none" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+                                      <input type="text" className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-full outline-none text-slate-900 focus:ring-2 focus:ring-indigo-500" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
                                   </div>
                               </div>
                           </div>
@@ -198,14 +198,14 @@ export const Contacts: React.FC = () => {
                               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-4">Email</label>
                               <div className="relative">
                                   <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                  <input type="email" required className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-full outline-none" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                  <input type="email" required className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-full outline-none text-slate-900 focus:ring-2 focus:ring-indigo-500" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                               </div>
                           </div>
                           <div className="space-y-2">
                               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-4">Telefone</label>
                               <div className="relative">
                                   <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                  <input type="tel" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-full outline-none" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                  <input type="tel" className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-full outline-none text-slate-900 focus:ring-2 focus:ring-indigo-500" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                               </div>
                           </div>
                       </div>
