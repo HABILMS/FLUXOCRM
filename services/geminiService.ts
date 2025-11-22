@@ -33,13 +33,13 @@ export class GeminiService {
       functionDeclarations: [
         {
           name: 'navigate',
-          description: 'Navigate to a specific page in the application',
+          description: 'Navigate to a specific page within the CRM application. Use when user asks to "go to", "show me", or "open" a section.',
           parameters: {
             type: Type.OBJECT,
             properties: {
               page: {
                 type: Type.STRING,
-                description: 'The page to navigate to. Options: "dashboard", "contacts", "opportunities", "expenses", "activities"',
+                description: 'The page to navigate to. Valid options: "dashboard", "contacts", "opportunities", "expenses", "activities", "admin"',
               },
             },
             required: ['page'],
@@ -47,25 +47,25 @@ export class GeminiService {
         },
         {
             name: 'create_expense',
-            description: 'Record a new outgoing expense (money spent)',
+            description: 'Record a new financial expense (money spent/outgoing). Use when user says "spent", "bought", "cost me", "paid".',
             parameters: {
                 type: Type.OBJECT,
                 properties: {
-                    description: { type: Type.STRING, description: 'What was purchased (e.g., "Lunch")' },
-                    amount: { type: Type.NUMBER, description: 'The numeric cost amount' },
-                    category: { type: Type.STRING, description: 'Category (e.g., Food, Transport, Office)' }
+                    description: { type: Type.STRING, description: 'A short description of the expense (e.g., "Lunch", "Uber", "Server cost")' },
+                    amount: { type: Type.NUMBER, description: 'The numeric monetary value (positive number)' },
+                    category: { type: Type.STRING, description: 'Category (e.g., Food, Transport, Office, Marketing)' }
                 },
                 required: ['description', 'amount']
             }
         },
         {
             name: 'create_income',
-            description: 'Record a new income or revenue (money received)',
+            description: 'Record a new financial income/revenue (money received). Use when user says "received", "sold", "earned", "invoice paid".',
             parameters: {
                 type: Type.OBJECT,
                 properties: {
-                    description: { type: Type.STRING, description: 'Source of income (e.g., "Project Sale", "Consulting")' },
-                    amount: { type: Type.NUMBER, description: 'The numeric amount received' },
+                    description: { type: Type.STRING, description: 'Source of income (e.g., "Consulting", "Project X", "Sale")' },
+                    amount: { type: Type.NUMBER, description: 'The numeric monetary value (positive number)' },
                     category: { type: Type.STRING, description: 'Category (e.g., Sales, Services, Salary)' }
                 },
                 required: ['description', 'amount']
@@ -82,7 +82,7 @@ export class GeminiService {
     onToolCall?: (call: FunctionCall) => Promise<any>
   ): Promise<string> {
     const ai = await this.getAi();
-    if (!ai) return "Erro: Chave de API não configurada. Adicione sua chave nas configurações.";
+    if (!ai) return "Erro: Chave de API não configurada. Adicione sua chave nas configurações para usar a IA.";
 
     try {
       // Convert simplified history to format
@@ -120,14 +120,14 @@ export class GeminiService {
         }
         // Send tool response back to model to get final text.
         const finalResponse = await chat.sendMessage({ message: responseParts });
-        return finalResponse.text || "Ação realizada.";
+        return finalResponse.text || "Ação realizada com sucesso.";
       }
 
-      return result.text || "Não entendi, pode repetir?";
+      return result.text || "Não entendi, pode repetir de outra forma?";
       
     } catch (error) {
       console.error("Gemini Error:", error);
-      return "Desculpe, ocorreu um erro ao processar sua solicitação.";
+      return "Desculpe, ocorreu um erro de conexão com a IA. Tente novamente em instantes.";
     }
   }
 }

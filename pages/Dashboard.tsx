@@ -4,7 +4,7 @@ import { useApp } from '../contexts/AppContext';
 import { StorageService } from '../services/storage';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, DollarSign, AlertCircle, Loader2, ArrowRight, PlusCircle } from 'lucide-react';
-import { OpportunityStatus } from '../types';
+import { OpportunityStatus, PlanType } from '../types';
 import { Link } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
@@ -53,7 +53,9 @@ export const Dashboard: React.FC = () => {
 
   if (!user) return null;
   if (!data) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-indigo-600" size={40}/></div>;
-  const plan = plans[user.plan];
+  
+  // Safe Plan Access
+  const plan = plans[user.plan] || plans[PlanType.BASIC];
 
   const COLORS = ['#6366f1', '#8b5cf6', '#10b981', '#ef4444'];
 
@@ -118,7 +120,7 @@ export const Dashboard: React.FC = () => {
                     <p className="text-sm text-slate-500">Total Contatos</p>
                     <h3 className="text-2xl font-bold mt-1">{data.contactCount}</h3>
                     <p className="text-xs text-slate-400 mt-1">
-                         {plan.maxContacts === -1 ? 'Ilimitado' : `Limite: ${plan.maxContacts}`}
+                         {plan?.maxContacts === -1 ? 'Ilimitado' : `Limite: ${plan?.maxContacts || 0}`}
                     </p>
                 </div>
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">

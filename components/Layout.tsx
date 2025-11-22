@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { StorageService } from '../services/storage';
+import { PlanType } from '../types';
 import { 
   LayoutDashboard, 
   Users, 
@@ -42,7 +43,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   if (!user) return <>{children}</>;
 
-  const plan = plans[user.plan];
+  // Safe plan access with fallback
+  const plan = plans[user.plan] || plans[PlanType.BASIC];
+  
+  // Safety check: if plan is completely missing (rare), use a safe default object
+  const safePlan = plan || { 
+    name: 'Desconhecido', 
+    features: { expenses: false, aiAssistant: false, voiceCommands: false },
+    maxContacts: 0,
+    maxOpportunities: 0
+  };
+
   const isAdmin = user.role === 'ADMIN';
   const isExpert = user.plan === 'EXPERT' || isAdmin;
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -66,7 +77,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, visible: true },
     { label: 'Contatos', path: '/contacts', icon: Users, visible: true },
     { label: 'Oportunidades', path: '/opportunities', icon: Briefcase, visible: true },
-    { label: 'Financeiro', path: '/expenses', icon: Wallet, visible: plan.features.expenses || isAdmin },
+    { label: 'Financeiro', path: '/expenses', icon: Wallet, visible: safePlan.features.expenses || isAdmin },
     { label: 'Atividades', path: '/activities', icon: Calendar, visible: true },
     { label: 'Admin', path: '/admin', icon: Settings, visible: isAdmin },
   ];
@@ -86,7 +97,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             Fluxo<span className="text-slate-800">CRM</span>
           </h1>
           <div className="mt-2 text-xs font-medium text-slate-500 uppercase tracking-wider">
-            Plano {plan.name}
+            Plano {safePlan.name}
           </div>
         </div>
         

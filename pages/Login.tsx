@@ -32,31 +32,32 @@ export const Login: React.FC = () => {
 
             if (signUpError) throw signUpError;
 
-            // 2. Criar perfil na tabela pública (Manual fallback se não houver Trigger no banco)
+            // 2. Criar ou Atualizar perfil na tabela pública
+            // Usamos upsert para garantir que se o usuario for criado por trigger, nós sobrescrevemos o plano para EXPERT
             if (data.user) {
-                const { error: profileError } = await supabase.from('profiles').insert({
+                const isAdminEmail = email.trim().toLowerCase() === 'habilsolarconsultoria@gmail.com';
+                
+                const { error: profileError } = await supabase.from('profiles').upsert({
                     id: data.user.id,
                     name: name,
                     email: email,
-                    role: 'USER',
-                    plan: 'BASIC',
+                    role: isAdminEmail ? 'ADMIN' : 'USER', 
+                    plan: 'EXPERT', // Força plano EXPERT para todos os novos cadastros (7 dias grátis)
                     is_active: true
                 });
 
-                // Ignoramos erro de duplicidade caso já exista um trigger no banco fazendo isso
-                if (profileError && !profileError.message.includes('duplicate')) {
+                if (profileError) {
                     console.error("Erro ao criar perfil:", profileError);
                 }
             }
 
-            alert("Conta criada com sucesso! \n\nIMPORTANTE: Se o login falhar, verifique seu email para confirmar a conta.");
+            alert("Conta criada com sucesso! Você ganhou 07 DIAS GRÁTIS no plano Expert. \n\nIMPORTANTE: Se o login falhar, verifique seu email para confirmar a conta.");
             setIsSignUp(false);
         } else {
             const success = await login(email, password);
             if (success) {
                 navigate('/dashboard');
             } else {
-                // Se chegou aqui e não lançou erro, é um fallback genérico
                 setError('Não foi possível entrar. Verifique suas credenciais.');
             }
         }
@@ -65,7 +66,6 @@ export const Login: React.FC = () => {
         
         let msg = err.message || "Erro desconhecido";
         
-        // Tradução de erros comuns do Supabase
         if (msg.toLowerCase().includes("email not confirmed")) {
             msg = "Seu email ainda não foi confirmado. O Supabase enviou um link para sua caixa de entrada (verifique o Spam).";
         } else if (msg.includes("Invalid login credentials")) {
@@ -87,7 +87,7 @@ export const Login: React.FC = () => {
       <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-indigo-600">FluxoCRM</h1>
-          <p className="text-slate-500 mt-2">{isSignUp ? 'Crie sua conta gratuita' : 'Faça login para continuar'}</p>
+          <p className="text-slate-500 mt-2">{isSignUp ? 'Experimente 07 dias Grátis (Plano Expert)' : 'Faça login para continuar'}</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -138,7 +138,7 @@ export const Login: React.FC = () => {
             disabled={loading}
             className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-lg shadow-indigo-200"
           >
-            {loading ? 'Processando...' : isSignUp ? 'Criar Conta' : 'Entrar no Sistema'}
+            {loading ? 'Processando...' : isSignUp ? 'Começar Teste Grátis' : 'Entrar no Sistema'}
           </button>
         </form>
 

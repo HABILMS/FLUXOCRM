@@ -88,6 +88,11 @@ export const Contacts: React.FC = () => {
       return `https://wa.me/${clean}`;
   };
 
+  const openMap = (address: string) => {
+      if(!address) return;
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -138,6 +143,19 @@ export const Contacts: React.FC = () => {
                         {contact.company || 'Empresa não informada'}
                     </p>
 
+                    {contact.address && (
+                        <div className="mb-4 ml-1">
+                            <button 
+                                onClick={() => openMap(contact.address || '')}
+                                className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100 transition-colors"
+                                title="Ver no Google Maps"
+                            >
+                                <MapPin size={12} /> 
+                                {contact.address}
+                            </button>
+                        </div>
+                    )}
+
                     <div className="space-y-3 pt-4 border-t border-slate-50">
                         <a 
                             href={`mailto:${contact.email}`} 
@@ -168,7 +186,7 @@ export const Contacts: React.FC = () => {
         </div>
       )}
 
-      {/* Modal (Same as before) */}
+      {/* Modal */}
       {isModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity animate-in fade-in duration-200">
               <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 border border-white/20">
@@ -176,7 +194,6 @@ export const Contacts: React.FC = () => {
                       <h3 className="text-2xl font-bold text-slate-800 mb-6">
                           {editingContact ? 'Editar Contato' : 'Novo Contato'}
                       </h3>
-                      {/* ... same fields ... */}
                       <div className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                               <div className="space-y-2">
@@ -206,6 +223,19 @@ export const Contacts: React.FC = () => {
                               <div className="relative">
                                   <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                   <input type="tel" className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-full outline-none text-slate-900 focus:ring-2 focus:ring-indigo-500" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                              </div>
+                          </div>
+                          <div className="space-y-2">
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-4">Endereço Completo</label>
+                              <div className="relative">
+                                  <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                  <input 
+                                    type="text" 
+                                    placeholder="Rua, Número, Cidade - UF"
+                                    className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-full outline-none text-slate-900 focus:ring-2 focus:ring-indigo-500" 
+                                    value={formData.address} 
+                                    onChange={e => setFormData({...formData, address: e.target.value})} 
+                                  />
                               </div>
                           </div>
                       </div>

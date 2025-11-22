@@ -1,9 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Send, X, MessageSquare, Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { Mic, Send, X, MessageSquare, Volume2, Loader2 } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 import { useApp } from '../contexts/AppContext';
-import { PlanType } from '../types';
 import { ChatMessage } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { StorageService } from '../services/storage';
@@ -25,9 +24,9 @@ export const AIAssistant: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Check Permissions based on Plan
+  // Check Permissions: Allow if plan has feature OR if user is ADMIN
   const planConfig = user ? plans[user.plan] : null;
-  const hasAccess = planConfig?.features.aiAssistant;
+  const hasAccess = (planConfig?.features.aiAssistant) || (user?.role === 'ADMIN');
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -40,55 +39,64 @@ export const AIAssistant: React.FC = () => {
       setMessages([{
         id: 'init',
         role: 'model',
-        text: 'Olá! Sou seu assistente virtual. Como posso ajudar hoje? Você pode pedir para navegar, adicionar despesas, receitas ou ver oportunidades.',
+        text: 'Olá! Sou seu assistente financeiro e operacional. Posso ajudar a registrar despesas ("Gastei 50 no almoço"), criar receitas ("Recebi 500 de consultoria") ou navegar pelo sistema.',
         timestamp: Date.now()
       }]);
     }
   }, [isOpen, messages.length]);
 
   const handleToolCall = async (call: any) => {
-      console.log("Tool Call:", call);
-      if (call.name === 'navigate') {
-          const page = call.args.page.toLowerCase();
-          if (['dashboard', 'contacts', 'opportunities', 'expenses', 'activities', 'admin'].includes(page)) {
-              navigate(`/${page}`);
-              return `Navigated to ${page}`;
-          }
-          return `Page ${page} not found`;
+      console.log("Executando Ferramenta:", call.name, call.args);
+      
+      try {
+        if (call.name === 'navigate') {
+            const page = call.args.page.toLowerCase();
+            if (['dashboard', 'contacts', 'opportunities', 'expenses', 'activities', 'admin'].includes(page)) {
+                navigate(`/${page}`);
+                return `Navegando para a página ${page}...`;
+            }
+            return `Página ${page} não encontrada. Tente: dashboard, contatos, financeiro.`;
+        }
+
+        if (call.name === 'create_expense') {
+            const { description, amount, category } = call.args;
+            if (user) {
+                await StorageService.saveExpense({
+                    id: crypto.randomUUID(),
+                    userId: user.id,
+                    description: description || 'Despesa sem nome',
+                    amount: Number(amount),
+                    category: category || 'Geral',
+                    date: new Date().toISOString(),
+                    type: 'EXPENSE'
+                });
+                return `✅ Despesa registrada: "${description}" no valor de R$ ${amount}.`;
+            }
+            return "Erro: Usuário não identificado.";
+        }
+
+        if (call.name === 'create_income') {
+            const { description, amount, category } = call.args;
+            if (user) {
+                await StorageService.saveExpense({
+                    id: crypto.randomUUID(),
+                    userId: user.id,
+                    description: description || 'Receita sem nome',
+                    amount: Number(amount),
+                    category: category || 'Vendas',
+                    date: new Date().toISOString(),
+                    type: 'INCOME'
+                });
+                return `💰 Receita registrada: "${description}" no valor de R$ ${amount}.`;
+            }
+            return "Erro: Usuário não identificado.";
+        }
+      } catch (error) {
+          console.error("Erro na ferramenta:", error);
+          return "Ocorreu um erro ao processar essa ação no banco de dados.";
       }
-      if (call.name === 'create_expense') {
-          const { description, amount, category } = call.args;
-          if (user) {
-              await StorageService.saveExpense({
-                  id: crypto.randomUUID(),
-                  userId: user.id,
-                  description,
-                  amount: Number(amount),
-                  category: category || 'Geral',
-                  date: new Date().toISOString(),
-                  type: 'EXPENSE'
-              });
-              return `Expense created: ${description} for ${amount}`;
-          }
-          return "User not logged in";
-      }
-      if (call.name === 'create_income') {
-          const { description, amount, category } = call.args;
-          if (user) {
-              await StorageService.saveExpense({
-                  id: crypto.randomUUID(),
-                  userId: user.id,
-                  description,
-                  amount: Number(amount),
-                  category: category || 'Vendas',
-                  date: new Date().toISOString(),
-                  type: 'INCOME'
-              });
-              return `Income created: ${description} for ${amount}`;
-          }
-          return "User not logged in";
-      }
-      return "Unknown tool";
+
+      return "Ferramenta desconhecida.";
   };
 
   const handleSend = async (text: string) => {
@@ -108,10 +116,18 @@ export const AIAssistant: React.FC = () => {
     const history = messages.map(m => ({ role: m.role, text: m.text }));
 
     const systemInstruction = `
-      Você é um assistente de CRM útil e eficiente. O usuário é um consultor ou vendedor.
-      Responda de forma concisa em Português.
-      Você tem acesso a ferramentas para navegar no app, criar despesas e REGISTRAR RECEITAS (ganhos).
-      Hoje é ${new Date().toLocaleDateString('pt-BR')}.
+      Você é um assistente de CRM inteligente.
+      Data de hoje: ${new Date().toLocaleDateString('pt-BR')}.
+      
+      SUAS FERRAMENTAS:
+      1. 'navigate': Use para ir para telas (dashboard, contacts, expenses, opportunities).
+      2. 'create_expense': Use quando o usuário disser "gastei", "paguei", "comprei", "despesa de X".
+      3. 'create_income': Use quando o usuário disser "recebi", "ganhei", "vendi", "faturei", "entrada de X".
+
+      REGRAS:
+      - Se o usuário falar valores monetários, tente extrair o número e a descrição.
+      - Responda de forma curta e prestativa.
+      - Se usar uma ferramenta, sua resposta final deve confirmar o que foi feito com base no retorno da ferramenta.
     `;
 
     const responseText = await geminiService.sendMessage(history, text, systemInstruction, handleToolCall);
@@ -159,10 +175,9 @@ export const AIAssistant: React.FC = () => {
     }
 
     try {
-        // Explicitly request permission when button is clicked
         await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
-        alert("É necessário permitir o acesso ao microfone para usar os comandos de voz.");
+        alert("É necessário permitir o acesso ao microfone.");
         return;
     }
 
@@ -193,18 +208,19 @@ export const AIAssistant: React.FC = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110 z-50"
+          className="fixed bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110 z-50 flex items-center justify-center"
+          title="Assistente Inteligente"
         >
-          <MessageSquare size={24} />
+          <MessageSquare size={28} />
         </button>
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-80 md:w-96 h-[500px] bg-white rounded-xl shadow-2xl flex flex-col border border-slate-200 z-50 overflow-hidden">
+        <div className="fixed bottom-6 right-6 w-80 md:w-96 h-[500px] bg-white rounded-xl shadow-2xl flex flex-col border border-slate-200 z-50 overflow-hidden animate-in slide-in-from-bottom-10">
           <div className="bg-indigo-600 text-white p-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="font-semibold">Fluxo AI Assistant</span>
-              <span className="text-xs bg-indigo-500 px-2 py-0.5 rounded-full">Gemini 2.5</span>
+              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">Beta</span>
             </div>
             <button onClick={() => setIsOpen(false)} className="hover:bg-indigo-500 p-1 rounded">
               <X size={20} />
@@ -218,7 +234,7 @@ export const AIAssistant: React.FC = () => {
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] p-3 rounded-lg text-sm ${
+                  className={`max-w-[85%] p-3 rounded-2xl text-sm ${
                     msg.role === 'user'
                       ? 'bg-indigo-600 text-white rounded-br-none'
                       : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-sm'
@@ -230,8 +246,9 @@ export const AIAssistant: React.FC = () => {
             ))}
             {isProcessing && (
                 <div className="flex justify-start">
-                    <div className="bg-white border border-slate-200 p-3 rounded-lg rounded-bl-none shadow-sm">
-                        <Loader2 className="animate-spin text-indigo-600" size={20} />
+                    <div className="bg-white border border-slate-200 p-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-2 text-sm text-slate-500">
+                        <Loader2 className="animate-spin text-indigo-600" size={16} />
+                        Pensando...
                     </div>
                 </div>
             )}
@@ -239,7 +256,7 @@ export const AIAssistant: React.FC = () => {
           </div>
 
           <div className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
-             {planConfig.features.voiceCommands && (
+             {planConfig?.features.voiceCommands && (
                 <button
                 onClick={startListening}
                 className={`p-2 rounded-full transition-colors ${isListening ? 'bg-red-100 text-red-600' : 'hover:bg-slate-100 text-slate-500'}`}
@@ -248,7 +265,7 @@ export const AIAssistant: React.FC = () => {
                 <Mic size={20} />
                 </button>
              )}
-             {planConfig.features.voiceCommands && isSpeaking && (
+             {planConfig?.features.voiceCommands && isSpeaking && (
                  <button onClick={toggleSpeech} className="p-2 rounded-full hover:bg-slate-100 text-indigo-600 animate-pulse">
                      <Volume2 size={20} />
                  </button>
@@ -259,12 +276,12 @@ export const AIAssistant: React.FC = () => {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend(inputValue)}
               placeholder="Digite ou fale..."
-              className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+              className="flex-1 bg-slate-100 border-transparent focus:bg-white focus:border-indigo-300 border rounded-full px-4 py-2 text-sm outline-none transition-all"
             />
             <button
               onClick={() => handleSend(inputValue)}
               disabled={!inputValue.trim() || isProcessing}
-              className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:opacity-50"
+              className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
               <Send size={18} />
             </button>

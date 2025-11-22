@@ -2,16 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { StorageService } from '../services/storage';
-import { UserSettings } from '../types';
-import { Bell, Save, Sparkles, Key, Trash2, Eye, EyeOff } from 'lucide-react';
+import { UserSettings, PlanType, PlanConfig } from '../types';
+import { Bell, Save, Sparkles, Key, Trash2, Eye, EyeOff, CreditCard, Check } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
 
 export const Settings: React.FC = () => {
-  const { user } = useApp();
+  const { user, plans, refreshUser } = useApp();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [hasApiKey, setHasApiKey] = useState(false);
   const [customKey, setCustomKey] = useState('');
   const [showKey, setShowKey] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -63,11 +64,76 @@ export const Settings: React.FC = () => {
       }
   };
 
+  const handleChangePlan = async (newPlan: PlanType) => {
+      const planName = plans[newPlan].name;
+      if(confirm(`Deseja alterar seu plano para ${planName}?`)) {
+          setLoadingPlan(true);
+          try {
+              const updatedUser = { ...user, plan: newPlan };
+              await StorageService.saveUser(updatedUser);
+              await refreshUser();
+              alert(`Plano atualizado para ${planName} com sucesso!`);
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao atualizar plano.');
+          } finally {
+              setLoadingPlan(false);
+          }
+      }
+  };
+
   return (
     <div className="max-w-2xl mx-auto pb-10">
       <h2 className="text-2xl font-bold text-slate-800 mb-6">Configurações</h2>
 
       <div className="space-y-6">
+        
+        {/* Subscription Section */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100">
+             <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                  <CreditCard size={24} />
+              </div>
+              <div>
+                  <h3 className="font-semibold text-slate-800">Minha Assinatura</h3>
+                  <p className="text-sm text-slate-500">Plano atual: <span className="font-bold text-emerald-600">{plans[user.plan]?.name || user.plan}</span></p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 mt-4">
+                {(Object.values(plans) as PlanConfig[]).map((p) => (
+                    <div key={p.type} className={`border rounded-lg p-4 flex justify-between items-center ${user.plan === p.type ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500' : 'border-slate-200'}`}>
+                        <div>
+                            <h4 className="font-bold text-slate-800">{p.name}</h4>
+                            <p className="text-sm text-slate-500">R$ {p.price}/mês</p>
+                            <div className="flex gap-2 mt-1 text-xs text-slate-400">
+                                <span>{p.maxContacts === -1 ? '∞ Contatos' : `${p.maxContacts} Contatos`}</span>
+                                <span>•</span>
+                                <span>{p.features.aiAssistant ? 'Com IA' : 'Sem IA'}</span>
+                            </div>
+                        </div>
+                        <div>
+                            {user.plan === p.type ? (
+                                <span className="flex items-center gap-1 text-sm font-bold text-emerald-600">
+                                    <Check size={16} /> Atual
+                                </span>
+                            ) : (
+                                <button 
+                                    onClick={() => handleChangePlan(p.type)}
+                                    disabled={loadingPlan}
+                                    className="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                                >
+                                    Mudar
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+          </div>
+        </div>
+
         {/* Notifications Section */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-100">

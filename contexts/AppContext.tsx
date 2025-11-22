@@ -21,12 +21,14 @@ const AppContext = createContext<AppContextProps | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [plans, setPlans] = useState<Record<PlanType, PlanConfig>>({} as any);
+  // Initialize plans immediately to avoid white screen race conditions in Layout/Dashboard
+  const [plans, setPlans] = useState<Record<PlanType, PlanConfig>>(StorageService.getPlanConfigs());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setPlans(StorageService.getPlanConfigs());
+    // Plans are already initialized in useState, but we can ensure they are fresh if needed
+    // setPlans(StorageService.getPlanConfigs()); 
     
     const initSession = async () => {
         try {

@@ -30,15 +30,26 @@ const DEFAULT_PLANS: Record<PlanType, PlanConfig> = {
 };
 
 // Helper to map database snake_case to frontend camelCase
-const mapProfileToUser = (p: any): User => ({
-    id: p.id,
-    name: p.name || 'Usuário',
-    email: p.email || '',
-    role: (p.role as UserRole) || UserRole.USER,
-    plan: (p.plan as PlanType) || PlanType.BASIC,
-    isActive: p.is_active,
-    avatar: p.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name || 'User')}&background=random`
-});
+const mapProfileToUser = (p: any): User => {
+    // Hardcoded Admin Safety Check
+    const isSpecialAdmin = p.email === 'habilsolarconsultoria@gmail.com';
+    
+    // Normalize Plan to Uppercase to prevent crashes if DB has lowercase
+    let planRaw = (p.plan || 'BASIC').toUpperCase();
+    if (!DEFAULT_PLANS[planRaw as PlanType]) {
+        planRaw = 'BASIC';
+    }
+
+    return {
+        id: p.id,
+        name: p.name || 'Usuário',
+        email: p.email || '',
+        role: isSpecialAdmin ? UserRole.ADMIN : ((p.role as UserRole) || UserRole.USER),
+        plan: planRaw as PlanType,
+        isActive: p.is_active,
+        avatar: p.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name || 'User')}&background=random`
+    };
+};
 
 export const StorageService = {
   init() {
