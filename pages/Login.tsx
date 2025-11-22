@@ -21,22 +21,43 @@ export const Login: React.FC = () => {
 
     try {
         if (isSignUp) {
-            const { error: signUpError } = await supabase.auth.signUp({
+            // 1. Criar usuário no Auth
+            const { data, error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
                     data: { name }
                 }
             });
+
             if (signUpError) throw signUpError;
-            alert("Conta criada! Verifique seu email para confirmar ou faça login.");
+
+            // 2. Criar perfil na tabela pública (Manual fallback se não houver Trigger no banco)
+            if (data.user) {
+                const { error: profileError } = await supabase.from('profiles').insert({
+                    id: data.user.id,
+                    name: name,
+                    email: email,
+                    role: 'USER',
+                    plan: 'BASIC',
+                    is_active: true
+                });
+
+                // Ignoramos erro de duplicidade caso já exista um trigger no banco fazendo isso
+                if (profileError && !profileError.message.includes('duplicate')) {
+                    console.error("Erro ao criar perfil:", profileError);
+                }
+            }
+
+            alert("Conta criada com sucesso! \n\nIMPORTANTE: Se o login falhar, verifique seu email para confirmar a conta.");
             setIsSignUp(false);
         } else {
             const success = await login(email, password);
             if (success) {
                 navigate('/dashboard');
             } else {
-                setError('Credenciais inválidas ou erro de conexão.');
+                // Se chegou aqui e não lançou erro, é um fallback genérico
+                setError('Não foi possível entrar. Verifique suas credenciais.');
             }
         }
     } catch (err: any) {
@@ -45,12 +66,14 @@ export const Login: React.FC = () => {
         let msg = err.message || "Erro desconhecido";
         
         // Tradução de erros comuns do Supabase
-        if (msg.includes("Email not confirmed")) {
-            msg = "Seu email ainda não foi confirmado. Verifique sua caixa de entrada (e spam) e clique no link de confirmação.";
-        } else if (msg === "Invalid login credentials") {
+        if (msg.toLowerCase().includes("email not confirmed")) {
+            msg = "Seu email ainda não foi confirmado. O Supabase enviou um link para sua caixa de entrada (verifique o Spam).";
+        } else if (msg.includes("Invalid login credentials")) {
             msg = "Email ou senha incorretos.";
-        } else if (msg === "Failed to fetch") {
-            msg = "Falha na conexão com o servidor. Verifique sua internet ou se o banco de dados foi criado.";
+        } else if (msg.includes("Failed to fetch")) {
+            msg = "Falha na conexão. Verifique sua internet.";
+        } else if (msg.includes("already registered")) {
+            msg = "Este email já está cadastrado.";
         }
         
         setError(msg);
@@ -76,6 +99,7 @@ export const Login: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900"
+                placeholder="Seu nome completo"
                 required
                 />
             </div>
@@ -87,6 +111,7 @@ export const Login: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900"
+              placeholder="seu@email.com"
               required
             />
           </div>
@@ -97,12 +122,13 @@ export const Login: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900"
+              placeholder="******"
               required
             />
           </div>
           
           {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center font-medium">
                   {error}
               </div>
           )}
@@ -110,15 +136,18 @@ export const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-lg shadow-indigo-200"
           >
-            {loading ? 'Carregando...' : isSignUp ? 'Criar Conta' : 'Entrar'}
+            {loading ? 'Processando...' : isSignUp ? 'Criar Conta' : 'Entrar no Sistema'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-            <button onClick={() => { setIsSignUp(!isSignUp); setError(''); }} className="text-sm text-indigo-600 hover:underline">
-                {isSignUp ? 'Já tem uma conta? Entrar' : 'Não tem uma conta? Criar agora'}
+        <div className="mt-6 text-center border-t border-slate-100 pt-4">
+            <button 
+                onClick={() => { setIsSignUp(!isSignUp); setError(''); }} 
+                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+            >
+                {isSignUp ? 'Já tem uma conta? Fazer Login' : 'Não tem conta? Cadastre-se Grátis'}
             </button>
         </div>
       </div>

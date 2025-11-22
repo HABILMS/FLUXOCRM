@@ -49,7 +49,7 @@ export const WhatsappBot: React.FC = () => {
   }, [chatHistory]);
 
   useEffect(() => {
-      let timer: NodeJS.Timeout;
+      let timer: any;
       if (scanStatus === 'scanning' && timeLeft > 0) {
           timer = setInterval(() => {
               setTimeLeft(prev => prev - 1);
