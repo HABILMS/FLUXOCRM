@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { StorageService } from '../services/storage';
 import { UserSettings, PlanType, PlanConfig } from '../types';
-import { Bell, Save, Sparkles, Key, Trash2, Eye, EyeOff, CreditCard, Check } from 'lucide-react';
+import { Bell, Save, Sparkles, Key, Trash2, Eye, EyeOff, CreditCard, Check, ExternalLink, Info } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
 
 export const Settings: React.FC = () => {
@@ -198,6 +198,25 @@ export const Settings: React.FC = () => {
                   <h3 className="font-semibold text-slate-800">Inteligência Artificial</h3>
                   <p className="text-sm text-slate-500">Configure sua chave para usar recursos avançados</p>
               </div>
+            </div>
+
+            {/* Helper Info Box */}
+            <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mb-6">
+                <h4 className="font-bold text-indigo-700 text-sm mb-1 flex items-center gap-2">
+                    <Info size={16} /> Como obter sua chave
+                </h4>
+                <p className="text-xs text-indigo-800 mb-2 leading-relaxed">
+                    A chave de API é necessária para ativar o Chat Inteligente, o Gerador de Imagens e o Bot de WhatsApp.
+                    O Google oferece um nível gratuito para desenvolvedores.
+                </p>
+                <a 
+                    href="https://aistudio.google.com/app/apikey" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1"
+                >
+                    Clique aqui para gerar sua chave no Google AI Studio <ExternalLink size={12} />
+                </a>
             </div>
             
             {/* Manual Key Input */}

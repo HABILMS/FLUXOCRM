@@ -70,7 +70,11 @@ export const StorageService = {
   },
 
   async getUsers(): Promise<User[]> {
-      const { data } = await supabase.from('profiles').select('*');
+      const { data, error } = await supabase.from('profiles').select('*').order('name', { ascending: true });
+      if (error) {
+          console.error("Erro ao buscar usuários:", error);
+          return [];
+      }
       return (data || []).map(mapProfileToUser);
   },
 
