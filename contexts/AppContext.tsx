@@ -5,6 +5,8 @@ import { StorageService } from '../services/storage';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../services/supabase';
 
+type Theme = 'light' | 'dark' | 'system';
+
 interface AppContextProps {
   user: User | null;
   plans: Record<PlanType, PlanConfig>;
@@ -15,6 +17,8 @@ interface AppContextProps {
   notifications: AppNotification[];
   refreshNotifications: () => void;
   isLoading: boolean;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
@@ -25,6 +29,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [plans, setPlans] = useState<Record<PlanType, PlanConfig>>(StorageService.getPlanConfigs());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Theme State
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+      return localStorage.getItem('theme') as Theme;
+    }
+    return 'system';
+  });
 
   useEffect(() => {
     // Plans are already initialized in useState, but we can ensure they are fresh if needed
@@ -72,6 +84,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => subscription.unsubscribe();
   }, []);
 
+  // Theme Logic
+  useEffect(() => {
+    const root = window.document.documentElement;
+    
+    // Remove previous classes
+    root.classList.remove('light', 'dark');
+
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.classList.add(systemTheme);
+      // We don't save 'system' to localStorage key 'theme' strictly if using Tailwind dark mode 'class'
+      // But standard way is:
+      if (systemTheme === 'dark') {
+          root.classList.add('dark');
+      } else {
+          root.classList.remove('dark');
+      }
+      localStorage.removeItem('theme');
+    } else {
+      root.classList.add(theme);
+      localStorage.setItem('theme', theme);
+    }
+  }, [theme]);
+
+  const setTheme = (t: Theme) => {
+      setThemeState(t);
+  };
+
   const login = async (email: string, pass: string): Promise<boolean> => {
     try {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -116,7 +156,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ user, plans, login, logout, refreshUser, updatePlans, notifications, refreshNotifications, isLoading }}>
+    <AppContext.Provider value={{ user, plans, login, logout, refreshUser, updatePlans, notifications, refreshNotifications, isLoading, theme, setTheme }}>
       {children}
     </AppContext.Provider>
   );

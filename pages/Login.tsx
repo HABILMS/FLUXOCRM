@@ -83,52 +83,52 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-      <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900 p-4 transition-colors duration-300">
+      <div className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-xl w-full max-w-md border border-slate-200 dark:border-slate-700">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-indigo-600">FluxoCRM</h1>
-          <p className="text-slate-500 mt-2">{isSignUp ? 'Experimente 07 dias Grátis (Plano Expert)' : 'Faça login para continuar'}</p>
+          <h1 className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">FluxoCRM</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">{isSignUp ? 'Experimente 07 dias Grátis (Plano Expert)' : 'Faça login para continuar'}</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           {isSignUp && (
             <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome</label>
                 <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900"
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                 placeholder="Seu nome completo"
                 required
                 />
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900"
+              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
               placeholder="seu@email.com"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Senha</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-900"
+              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
               placeholder="******"
               required
             />
           </div>
           
           {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center font-medium">
+              <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm text-center font-medium">
                   {error}
               </div>
           )}
@@ -136,16 +136,16 @@ export const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-lg shadow-indigo-200"
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-colors disabled:opacity-50 shadow-lg shadow-indigo-200 dark:shadow-none"
           >
             {loading ? 'Processando...' : isSignUp ? 'Começar Teste Grátis' : 'Entrar no Sistema'}
           </button>
         </form>
 
-        <div className="mt-6 text-center border-t border-slate-100 pt-4">
+        <div className="mt-6 text-center border-t border-slate-100 dark:border-slate-700 pt-4">
             <button 
                 onClick={() => { setIsSignUp(!isSignUp); setError(''); }} 
-                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium transition-colors"
             >
                 {isSignUp ? 'Já tem uma conta? Fazer Login' : 'Não tem conta? Cadastre-se Grátis'}
             </button>

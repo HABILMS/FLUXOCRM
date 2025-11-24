@@ -216,7 +216,7 @@ export const AIAssistant: React.FC = () => {
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-80 md:w-96 h-[500px] bg-white rounded-xl shadow-2xl flex flex-col border border-slate-200 z-50 overflow-hidden animate-in slide-in-from-bottom-10">
+        <div className="fixed bottom-6 right-6 w-80 md:w-96 h-[500px] bg-white dark:bg-slate-800 rounded-xl shadow-2xl flex flex-col border border-slate-200 dark:border-slate-700 z-50 overflow-hidden animate-in slide-in-from-bottom-10">
           <div className="bg-indigo-600 text-white p-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="font-semibold">Fluxo AI Assistant</span>
@@ -227,7 +227,7 @@ export const AIAssistant: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-slate-900 space-y-4">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -237,7 +237,7 @@ export const AIAssistant: React.FC = () => {
                   className={`max-w-[85%] p-3 rounded-2xl text-sm ${
                     msg.role === 'user'
                       ? 'bg-indigo-600 text-white rounded-br-none'
-                      : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-sm'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none shadow-sm'
                   }`}
                 >
                   {msg.text}
@@ -246,8 +246,8 @@ export const AIAssistant: React.FC = () => {
             ))}
             {isProcessing && (
                 <div className="flex justify-start">
-                    <div className="bg-white border border-slate-200 p-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-2 text-sm text-slate-500">
-                        <Loader2 className="animate-spin text-indigo-600" size={16} />
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                        <Loader2 className="animate-spin text-indigo-600 dark:text-indigo-400" size={16} />
                         Pensando...
                     </div>
                 </div>
@@ -255,18 +255,18 @@ export const AIAssistant: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+          <div className="p-3 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center gap-2">
              {planConfig?.features.voiceCommands && (
                 <button
                 onClick={startListening}
-                className={`p-2 rounded-full transition-colors ${isListening ? 'bg-red-100 text-red-600' : 'hover:bg-slate-100 text-slate-500'}`}
+                className={`p-2 rounded-full transition-colors ${isListening ? 'bg-red-100 text-red-600' : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400'}`}
                 title="Falar"
                 >
                 <Mic size={20} />
                 </button>
              )}
              {planConfig?.features.voiceCommands && isSpeaking && (
-                 <button onClick={toggleSpeech} className="p-2 rounded-full hover:bg-slate-100 text-indigo-600 animate-pulse">
+                 <button onClick={toggleSpeech} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 animate-pulse">
                      <Volume2 size={20} />
                  </button>
              )}
@@ -276,7 +276,7 @@ export const AIAssistant: React.FC = () => {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend(inputValue)}
               placeholder="Digite ou fale..."
-              className="flex-1 bg-slate-100 border-transparent focus:bg-white focus:border-indigo-300 border rounded-full px-4 py-2 text-sm outline-none transition-all"
+              className="flex-1 bg-slate-100 dark:bg-slate-700 border-transparent focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-300 dark:focus:border-indigo-500 border rounded-full px-4 py-2 text-sm outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
             />
             <button
               onClick={() => handleSend(inputValue)}

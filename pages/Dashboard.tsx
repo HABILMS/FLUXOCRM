@@ -52,7 +52,7 @@ export const Dashboard: React.FC = () => {
   }, [user]);
 
   if (!user) return null;
-  if (!data) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-indigo-600" size={40}/></div>;
+  if (!data) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-indigo-600 dark:text-indigo-400" size={40}/></div>;
   
   // Safe Plan Access
   const plan = plans[user.plan] || plans[PlanType.BASIC];
@@ -63,7 +63,7 @@ export const Dashboard: React.FC = () => {
   if (data.contactCount === 0 && data.oppCount === 0) {
       return (
           <div className="max-w-4xl mx-auto py-10">
-              <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-10 text-white shadow-2xl">
+              <div className="bg-gradient-to-br from-indigo-600 to-purple-700 dark:from-indigo-800 dark:to-purple-900 rounded-3xl p-10 text-white shadow-2xl">
                   <h2 className="text-3xl font-bold mb-4">Bem-vindo ao FluxoCRM, {user.name}! 🚀</h2>
                   <p className="text-indigo-100 text-lg mb-8 max-w-2xl">
                       Seu sistema está pronto. Parece que você ainda não tem dados. Vamos configurar seu fluxo de trabalho em dois passos simples?
@@ -94,7 +94,7 @@ export const Dashboard: React.FC = () => {
                   </div>
               </div>
 
-              <div className="mt-8 text-center text-slate-500">
+              <div className="mt-8 text-center text-slate-500 dark:text-slate-400">
                   <p className="flex items-center justify-center gap-2">
                       <PlusCircle size={16} /> Dica: Você também pode usar o Assistente IA (botão flutuante) para criar dados falando!
                   </p>
@@ -106,60 +106,60 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800">Dashboard Executivo</h2>
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${data.netBalance >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Dashboard Executivo</h2>
+        <span className={`px-3 py-1 rounded-full text-sm font-medium ${data.netBalance >= 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
             Saldo Líquido: R$ {data.netBalance.toFixed(2)}
         </span>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-sm text-slate-500">Total Contatos</p>
-                    <h3 className="text-2xl font-bold mt-1">{data.contactCount}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Total Contatos</p>
+                    <h3 className="text-2xl font-bold mt-1 text-slate-900 dark:text-white">{data.contactCount}</h3>
                     <p className="text-xs text-slate-400 mt-1">
                          {plan?.maxContacts === -1 ? 'Ilimitado' : `Limite: ${plan?.maxContacts || 0}`}
                     </p>
                 </div>
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg">
                     <Users size={24} />
                 </div>
             </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-sm text-slate-500">Oportunidades</p>
-                    <h3 className="text-2xl font-bold mt-1">{data.oppCount}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Oportunidades</p>
+                    <h3 className="text-2xl font-bold mt-1 text-slate-900 dark:text-white">{data.oppCount}</h3>
                 </div>
-                <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                <div className="p-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg">
                     <TrendingUp size={24} />
                 </div>
             </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-sm text-slate-500">Vendas Fechadas</p>
-                    <h3 className="text-2xl font-bold mt-1 text-emerald-600">R$ {data.totalWon.toLocaleString()}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Vendas Fechadas</p>
+                    <h3 className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">R$ {data.totalWon.toLocaleString()}</h3>
                 </div>
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg">
                     <DollarSign size={24} />
                 </div>
             </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-sm text-slate-500">Em Negociação</p>
-                    <h3 className="text-2xl font-bold mt-1 text-amber-600">R$ {data.totalPipeline.toLocaleString()}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Em Negociação</p>
+                    <h3 className="text-2xl font-bold mt-1 text-amber-600 dark:text-amber-400">R$ {data.totalPipeline.toLocaleString()}</h3>
                 </div>
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                <div className="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg">
                     <AlertCircle size={24} />
                 </div>
             </div>
@@ -168,8 +168,8 @@ export const Dashboard: React.FC = () => {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-80">
-              <h3 className="font-semibold text-slate-700 mb-4">Status das Oportunidades</h3>
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm h-80">
+              <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-4">Status das Oportunidades</h3>
               {data.statusData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -181,36 +181,40 @@ export const Dashboard: React.FC = () => {
                             outerRadius={80}
                             paddingAngle={5}
                             dataKey="value"
+                            stroke="none"
                         >
                             {data.statusData.map((entry: any, index: number) => (
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Pie>
-                        <Tooltip />
+                        <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }} />
                     </PieChart>
                   </ResponsiveContainer>
               ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-600">
                       <PieChart size={48} className="opacity-20 mb-2" />
                       <p>Sem dados suficientes</p>
                   </div>
               )}
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-80">
-              <h3 className="font-semibold text-slate-700 mb-4">Valor por Produto/Serviço</h3>
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm h-80">
+              <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-4">Valor por Produto/Serviço</h3>
               {data.productData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={data.productData}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                          <YAxis axisLine={false} tickLine={false} />
-                          <Tooltip cursor={{fill: 'transparent'}} />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8'}} />
+                          <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8'}} />
+                          <Tooltip 
+                            cursor={{fill: 'transparent'}} 
+                            contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                          />
                           <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
                       </BarChart>
                   </ResponsiveContainer>
               ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-600">
                       <BarChart size={48} className="opacity-20 mb-2" />
                       <p>Sem dados de vendas</p>
                   </div>
