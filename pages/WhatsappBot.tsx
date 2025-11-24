@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Chat, FunctionDeclaration, SchemaType, Type } from '@google/genai';
-import { MessageCircle, Save, Send, Smartphone, RefreshCw, QrCode, Loader2, CheckCircle, Power, Wifi, WifiOff, Info, Briefcase, ShoppingBag, Clock, User, Copy, ClipboardCheck, Zap } from 'lucide-react';
+import { GoogleGenAI, Chat, FunctionDeclaration, Type } from '@google/genai';
+import { MessageCircle, Save, Send, Smartphone, RefreshCw, QrCode, Loader2, CheckCircle, Power, Wifi, WifiOff, Info, Briefcase, ShoppingBag, Clock, User, Copy, ClipboardCheck, Zap, Server, ShieldAlert } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { StorageService } from '../services/storage';
 import { BotConfig, OpportunityStatus } from '../types';
@@ -17,6 +17,7 @@ export const WhatsappBot: React.FC = () => {
   const [scanStatus, setScanStatus] = useState<'idle' | 'loading' | 'scanning' | 'success'>('idle');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [timeLeft, setTimeLeft] = useState(10);
+  const [showTechInfo, setShowTechInfo] = useState(false);
 
   // Simulation State
   const [simMessage, setSimMessage] = useState('');
@@ -254,7 +255,7 @@ export const WhatsappBot: React.FC = () => {
           }
       } catch (error) {
           console.error(error);
-          setChatHistory(prev => [...prev, { role: 'model', text: 'Erro de conexão.' }]);
+          setChatHistory(prev => [...prev, { role: 'model', text: 'Erro de conexão. Verifique sua chave de API ou tente novamente.' }]);
       } finally {
           setIsTyping(false);
       }
@@ -289,19 +290,56 @@ export const WhatsappBot: React.FC = () => {
                 <MessageCircle size={24} />
               </div>
               <div>
-                  <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Simulador de Bot WhatsApp</h2>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm">Treine sua IA e simule atendimentos reais.</p>
+                  <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Bot WhatsApp (Simulador AI)</h2>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">Treine sua IA e simule atendimentos antes de conectar na produção.</p>
               </div>
           </div>
           
-          <button 
-             onClick={copyPrompt}
-             className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm font-medium text-sm"
-          >
-              {copied ? <ClipboardCheck size={16} className="text-emerald-500"/> : <Copy size={16}/>}
-              {copied ? 'Prompt Copiado!' : 'Copiar Prompt do Sistema'}
-          </button>
+          <div className="flex gap-2">
+            <button 
+                onClick={() => setShowTechInfo(!showTechInfo)}
+                className="flex items-center gap-2 bg-indigo-50 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors font-medium text-sm"
+            >
+                <Server size={16}/> Info Técnica
+            </button>
+            <button 
+                onClick={copyPrompt}
+                className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm font-medium text-sm"
+            >
+                {copied ? <ClipboardCheck size={16} className="text-emerald-500"/> : <Copy size={16}/>}
+                {copied ? 'Copiado!' : 'Copiar Prompt'}
+            </button>
+          </div>
       </div>
+
+      {showTechInfo && (
+          <div className="mb-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 animate-in slide-in-from-top-4">
+              <h3 className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2 mb-2">
+                  <ShieldAlert size={20} /> Relatório de Operacionalidade
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                  <div>
+                      <p className="font-semibold text-blue-900 dark:text-blue-200 mb-1">Status Atual: SIMULADOR</p>
+                      <p className="text-blue-700 dark:text-blue-300 leading-relaxed">
+                          O sistema está operando em modo de <strong>Simulação Local</strong>. 
+                          Ele utiliza a API Gemini para processar linguagem natural e executar funções do CRM (como cadastrar leads) dentro desta interface.
+                          Nenhuma mensagem é enviada para telefones reais.
+                      </p>
+                  </div>
+                  <div>
+                      <p className="font-semibold text-blue-900 dark:text-blue-200 mb-1">O que falta para Produção?</p>
+                      <ul className="list-disc pl-5 text-blue-700 dark:text-blue-300 space-y-1">
+                          <li>Integração com API Oficial (WhatsApp Business API ou Twilio).</li>
+                          <li>Servidor Backend (Node.js/Python) para receber Webhooks do WhatsApp.</li>
+                          <li>Número de telefone verificado pela Meta.</li>
+                      </ul>
+                      <p className="mt-2 text-xs italic opacity-80">
+                          Use o botão "Copiar Prompt" para levar a inteligência treinada aqui para plataformas como Typebot ou Chatwoot.
+                      </p>
+                  </div>
+              </div>
+          </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Config & Connection */}
@@ -310,10 +348,10 @@ export const WhatsappBot: React.FC = () => {
               {/* Simulator Status */}
               <div className={`bg-white dark:bg-slate-800 p-6 rounded-2xl border shadow-sm transition-all ${config.isConnected ? 'border-emerald-200 dark:border-emerald-900 shadow-emerald-50 dark:shadow-none' : 'border-slate-200 dark:border-slate-700'}`}>
                   <h3 className="font-bold text-lg text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2 flex items-center justify-between">
-                      Status do Simulador
+                      Simulador de Treinamento
                       {config.isConnected ? (
                           <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-full">
-                              <Wifi size={12} /> ONLINE
+                              <Wifi size={12} /> ATIVO
                           </span>
                       ) : (
                           <span className="flex items-center gap-1 text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">
@@ -328,26 +366,25 @@ export const WhatsappBot: React.FC = () => {
                              <div className="text-center w-full">
                                 <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 max-w-sm mx-auto">
                                     Ative o simulador para testar o comportamento da IA com os dados do seu negócio.
-                                    <br/><span className="text-xs text-slate-400 mt-2 block">(Este é um ambiente de testes, não conecta ao WhatsApp real)</span>
                                 </p>
                                 <button 
                                     onClick={startConnection}
                                     className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors flex items-center gap-2 mx-auto shadow-lg shadow-emerald-200 dark:shadow-none"
                                 >
-                                    <Power size={20} /> Ativar Simulação
+                                    <Power size={20} /> Iniciar Simulador
                                 </button>
                              </div>
                           )}
                           {scanStatus !== 'idle' && scanStatus !== 'success' && (
                               <div className="flex flex-col items-center animate-in fade-in">
                                   <Loader2 size={32} className="animate-spin text-emerald-600 mb-2" />
-                                  <p className="text-sm text-slate-500 dark:text-slate-400">Iniciando motor de IA...</p>
+                                  <p className="text-sm text-slate-500 dark:text-slate-400">Carregando modelo Gemini 3 Pro...</p>
                               </div>
                           )}
                           {scanStatus === 'success' && (
                               <div className="flex flex-col items-center text-emerald-600 dark:text-emerald-400 animate-in zoom-in">
                                   <CheckCircle size={48} className="mb-2" />
-                                  <p className="font-bold">Simulador Ativo!</p>
+                                  <p className="font-bold">IA Conectada!</p>
                               </div>
                           )}
                       </div>
@@ -358,8 +395,8 @@ export const WhatsappBot: React.FC = () => {
                                   <Smartphone size={24} />
                               </div>
                               <div>
-                                  <p className="font-bold text-slate-800 dark:text-white">Ambiente de Teste</p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">Pronto para receber mensagens</p>
+                                  <p className="font-bold text-slate-800 dark:text-white">Sessão Ativa</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">Modelo: Gemini 3 Pro Preview</p>
                               </div>
                           </div>
                           <button 
@@ -374,7 +411,7 @@ export const WhatsappBot: React.FC = () => {
 
               {/* Business Identity */}
               <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <h3 className="font-bold text-lg text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">Identidade do Bot</h3>
+                  <h3 className="font-bold text-lg text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">Configuração da Personalidade</h3>
                   
                   <div className="space-y-5">
                       <div className="grid grid-cols-2 gap-4">
@@ -427,7 +464,7 @@ export const WhatsappBot: React.FC = () => {
                         onClick={handleSave}
                         className="w-full bg-slate-800 dark:bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-slate-900 dark:hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
                       >
-                        <Save size={18} /> Salvar e Atualizar Bot
+                        <Save size={18} /> Salvar e Re-treinar IA
                       </button>
                   </div>
               </div>
